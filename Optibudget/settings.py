@@ -30,6 +30,19 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        # Vous pouvez ajouter d'autres classes d'authentification si nécessaire
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,7 +51,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'optibudget_admin'
+    'optibudget_admin',
+    'accounts',
+    'budgetManager',
+    'taches',
+    'statistiques',
+    "rest_framework",
+    'rest_framework.authtoken',
+    'django_filters',
+    
 ]
 
 MIDDLEWARE = [
@@ -130,3 +151,16 @@ STATIC_ROOT=[
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuration EMAIL pour MailHog
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'localhost'  # ou '127.0.0.1'
+EMAIL_PORT = 1025  # Port SMTP de MailHog
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = ''  # Pas d'authentification nécessaire
+EMAIL_HOST_PASSWORD = '' 
+
+
+
+FRONTEND_URL="localhost:3000"
