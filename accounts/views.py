@@ -1,6 +1,5 @@
 from django.contrib.auth import login, logout
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
@@ -9,12 +8,13 @@ from rest_framework import status, permissions, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.authtoken.models import Token
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import authenticate
+from tasks.sendMail import send_email_task
+from Optibudget.settings import DEFAULT_FROM_EMAIL
 
 
 
@@ -440,13 +440,12 @@ def password_reset_request(request):
 
         """
 
-        
-        send_mail(
-            'Réinitialisation de votre mot de passe',
-            f'Cliquez sur ce lien pour réinitialiser votre mot de passe: {reset_url}',
-            settings.DEFAULT_FROM_EMAIL,
-            [email],
-            fail_silently=False,
+
+        send_email_task.delay(
+            subject='Réinitialisation de mot de passe',
+            message=f'Cliquez sur le lien suivant pour réinitialiser votre mot de passe : {reset_url}',
+            from_email=DEFAULT_FROM_EMAIL,
+            recipient_list=[email]
         )
         
         return Response({
@@ -492,7 +491,12 @@ def password_reset_confirm(request, uidb64, token):
         
         user.set_password(new_password)
         user.save()
-        
+        send_email_task.delay(
+            subject='Mot de passe réinitialisé',
+            message='Votre mot de passe a été réinitialisé avec succès.',
+            from_email=DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email]
+        )
         return Response({
             'message': 'Mot de passe réinitialisé avec succès'
         })

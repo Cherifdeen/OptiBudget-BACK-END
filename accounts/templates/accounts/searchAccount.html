@@ -1,0 +1,246 @@
+{% extends 'accounts/base.html' %}
+{% block title %}
+  Rechercher le compte
+{% endblock %}
+
+{% block content %}
+   <main class="flex-grow flex items-center justify-center p-4">
+        <div class="form-container bg-white rounded-lg shadow-lg p-6 md:p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">Réinitialisation de mot de passe</h1>
+                <p class="text-gray-600">Entrez votre adresse e-mail pour recevoir un lien de réinitialisation</p>
+            </div>
+            
+            <!-- Step 1: Email Input Form -->
+            <div id="step1" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Adresse e-mail</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-feather="mail" class="h-5 w-5 text-gray-400"></i>
+                        </div>
+                        <input type="email" id="email" name="email" class="form-input pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none" placeholder="exemple@entreprise.com" required>
+                    </div>
+                </div>
+                
+                <button id="send-link-btn" class="btn-primary w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center">
+                    <span>Envoyer le lien de réinitialisation</span>
+                </button>
+                
+                <div class="text-center">
+                    <a href="login.html" class="text-blue-600 hover:text-blue-800 text-sm flex items-center justify-center">
+                        <i data-feather="arrow-left" class="h-4 w-4 mr-1"></i>
+                        Retour à la connexion
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Step 2: Confirmation (Hidden Initially) -->
+            <div id="step2" class="space-y-6 hidden">
+                <div class="text-center py-4">
+                    <div class="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                        <i data-feather="check" class="h-8 w-8 text-green-500"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">E-mail envoyé</h2>
+                    <p class="text-gray-600 mb-4">
+                        Si l'adresse e-mail existe dans notre système, vous recevrez un lien pour réinitialiser votre mot de passe. Veuillez vérifier votre boîte de réception.
+                    </p>
+                    <p class="text-sm text-gray-500">
+                        L'e-mail peut prendre quelques minutes pour arriver. Pensez à vérifier votre dossier spam.
+                    </p>
+                </div>
+                
+                <div class="text-center pt-2">
+                    <button id="back-to-email" class="text-blue-600 hover:underline text-sm">
+                        Essayer avec une autre adresse e-mail
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 3: New Password Input (For when user clicks the email link) -->
+            <div id="step3" class="space-y-6 hidden">
+                <div>
+                    <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-feather="lock" class="h-5 w-5 text-gray-400"></i>
+                        </div>
+                        <input type="password" id="new-password" name="new-password" class="form-input pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none" placeholder="Entrez votre nouveau mot de passe" required>
+                    </div>
+                    <div class="mt-1">
+                        <div class="flex items-center text-xs text-gray-500 mt-1">
+                            <i data-feather="info" class="h-3 w-3 mr-1"></i>
+                            <span>Minimum 8 caractères, dont une majuscule et un chiffre</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-1">Confirmer le mot de passe</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-feather="lock" class="h-5 w-5 text-gray-400"></i>
+                        </div>
+                        <input type="password" id="confirm-password" name="confirm-password" class="form-input pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none" placeholder="Confirmez votre nouveau mot de passe" required>
+                    </div>
+                </div>
+                
+                <button id="reset-password-btn" class="btn-primary w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium">
+                    Réinitialiser le mot de passe
+                </button>
+            </div>
+            
+            <!-- Step 4: Success (Hidden Initially) -->
+            <div id="step4" class="space-y-6 hidden">
+                <div class="text-center py-4">
+                    <div class="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                        <i data-feather="check-circle" class="h-8 w-8 text-green-500"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">Mot de passe réinitialisé</h2>
+                    <p class="text-gray-600 mb-6">
+                        Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+                    </p>
+                    
+                    <a href="login.html" class="btn-primary inline-block bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg font-medium">
+                        Se connecter
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Error Message (Hidden Initially) -->
+            <div id="error-message" class="hidden bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg mt-4 flex items-start">
+                <i data-feather="alert-circle" class="h-5 w-5 mr-2 mt-0.5"></i>
+                <div>
+                    <strong class="font-medium">Erreur!</strong>
+                    <span id="error-text"> Un problème est survenu. Veuillez réessayer.</span>
+                </div>
+            </div>
+        </div>
+    </main>
+  <script>
+        // Initialize Feather Icons
+        document.addEventListener('DOMContentLoaded', function() {
+            feather.replace();
+            
+            // Form navigation logic
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const step4 = document.getElementById('step4');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            // Check URL parameters to see if we're on reset page (with token)
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            
+            if (token) {
+                // If token exists in URL, show step 3 (new password form)
+                step1.classList.add('hidden');
+                step2.classList.add('hidden');
+                step3.classList.remove('hidden');
+                
+                // Validate token with backend (simulation)
+                // In a real app, you would validate the token with your backend here
+                if (token !== 'valid-token-example') {
+                    showError('Le lien de réinitialisation est invalide ou a expiré. Veuillez demander un nouveau lien.');
+                    step3.classList.add('hidden');
+                    step1.classList.remove('hidden');
+                }
+            }
+            
+            // Email submission
+            document.getElementById('send-link-btn').addEventListener('click', function() {
+                const email = document.getElementById('email').value;
+                
+                if (!email || !isValidEmail(email)) {
+                    showError('Veuillez entrer une adresse e-mail valide');
+                    return;
+                }
+                
+                // Here you would send the request to your backend
+                // Simulating API call with timeout
+                this.innerHTML = '<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                
+                setTimeout(() => {
+                    // Hide step 1, show step 2 (confirmation)
+                    step1.classList.add('hidden');
+                    step2.classList.remove('hidden');
+                    errorMessage.classList.add('hidden');
+                    
+                    // Reset button
+                    this.innerHTML = '<span>Envoyer le lien de réinitialisation</span>';
+                }, 1500);
+            });
+            
+            // Back to email form
+            document.getElementById('back-to-email').addEventListener('click', function() {
+                step2.classList.add('hidden');
+                step1.classList.remove('hidden');
+                document.getElementById('email').value = '';
+                document.getElementById('email').focus();
+            });
+            
+            // Password reset submission
+            document.getElementById('reset-password-btn').addEventListener('click', function() {
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                
+                if (!newPassword || newPassword.length < 8) {
+                    showError('Le mot de passe doit contenir au moins 8 caractères');
+                    return;
+                }
+                
+                if (!hasUpperCase(newPassword) || !hasNumber(newPassword)) {
+                    showError('Le mot de passe doit contenir au moins une majuscule et un chiffre');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    showError('Les mots de passe ne correspondent pas');
+                    return;
+                }
+                
+                // Here you would send the request to your backend
+                // Simulating API call with timeout
+                this.innerHTML = '<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                
+                setTimeout(() => {
+                    // Hide step 3, show step 4 (success)
+                    step3.classList.add('hidden');
+                    step4.classList.remove('hidden');
+                    errorMessage.classList.add('hidden');
+                    
+                    // Reset button
+                    this.innerHTML = 'Réinitialiser le mot de passe';
+                }, 1500);
+            });
+            
+            // Helper functions
+            function showError(message) {
+                errorText.textContent = ' ' + message;
+                errorMessage.classList.remove('hidden');
+                
+                // Auto-hide after 6 seconds
+                setTimeout(() => {
+                    errorMessage.classList.add('hidden');
+                }, 6000);
+            }
+            
+            function isValidEmail(email) {
+                const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+                return re.test(String(email).toLowerCase());
+            }
+            
+            function hasUpperCase(str) {
+                return /[A-Z]/.test(str);
+            }
+            
+            function hasNumber(str) {
+                return /[0-9]/.test(str);
+            }
+            
+            // Password strength indicator logic could be added here
+        });
+    </script>
+{% endblock %}

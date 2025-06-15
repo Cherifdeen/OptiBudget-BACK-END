@@ -1,0 +1,217 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> {% block title %} OptiBudget {% endblock %} </title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    
+    <style>
+        /* Animation et transitions */
+        .form-container {
+            transition: all 0.3s ease;
+        }
+        
+        /* Style personnalisé pour les inputs au focus */
+        .form-input:focus {
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Style pour l'animation des labels */
+        .floating-label {
+            transition: all 0.2s ease;
+        }
+        
+        /* Effet parallax sur le background */
+        .parallax-bg {
+            background-attachment: fixed;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        
+        /* Animation pour les notifications */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-blue-50 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-sm py-4 px-6">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-2">
+                <span class="text-2xl font-bold text-blue-900">OptiBudget</span>
+            </a>
+            <div class="space-x-4">
+                <a href="#" class="text-gray-600 hover:text-blue-700 text-sm">Accueil</a>
+                <a href="#" class="text-gray-600 hover:text-blue-700 text-sm">Fonctionnalités</a>
+                <a href="#" class="text-gray-600 hover:text-blue-700 text-sm">Tarifs</a>
+                <a href="#" class="text-gray-600 hover:text-blue-700 text-sm">Contact</a>
+            </div>
+            <div class="space-x-2">
+                <a href="#" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Se connecter</a>
+                <a href="#" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150">S'inscrire</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+
+        {% block content %}
+
+        {% endblock %}
+
+
+
+
+
+
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="text-gray-500 text-sm mb-4 md:mb-0">© 2025 OptiBudget. Tous droits réservés.</div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-500 text-sm hover:text-blue-500">Confidentialité</a>
+                    <a href="#" class="text-gray-500 text-sm hover:text-blue-500">Conditions</a>
+                    <a href="#" class="text-gray-500 text-sm hover:text-blue-500">Contact</a>
+                    <a href="#" class="text-gray-500 text-sm hover:text-blue-500">Aide</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
+        
+        // Toggle password visibility
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.setAttribute('data-feather', 'eye-off');
+            } else {
+                passwordInput.type = 'password';
+                icon.setAttribute('data-feather', 'eye');
+            }
+            
+            feather.replace();
+        });
+        
+        // Simple password strength checker
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthBar = document.getElementById('pwd-strength');
+            const strengthText = document.getElementById('pwd-text');
+            
+            // Calculate strength
+            let strength = 0;
+            if (password.length >= 8) strength += 25;
+            if (password.match(/[A-Z]/)) strength += 25;
+            if (password.match(/[0-9]/)) strength += 25;
+            if (password.match(/[^A-Za-z0-9]/)) strength += 25;
+            
+            // Update UI
+            strengthBar.style.width = strength + '%';
+            
+            // Change color based on strength
+            if (strength <= 25) {
+                strengthBar.className = 'h-full rounded-full bg-red-500 transition-all duration-300';
+                strengthText.textContent = 'Faible';
+                strengthText.className = 'text-xs text-red-500';
+            } else if (strength <= 50) {
+                strengthBar.className = 'h-full rounded-full bg-yellow-500 transition-all duration-300';
+                strengthText.textContent = 'Moyen';
+                strengthText.className = 'text-xs text-yellow-500';
+            } else if (strength <= 75) {
+                strengthBar.className = 'h-full rounded-full bg-blue-500 transition-all duration-300';
+                strengthText.textContent = 'Bon';
+                strengthText.className = 'text-xs text-blue-500';
+            } else {
+                strengthBar.className = 'h-full rounded-full bg-green-500 transition-all duration-300';
+                strengthText.textContent = 'Excellent';
+                strengthText.className = 'text-xs text-green-500';
+            }
+        });
+        
+        // Form validation
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const companyName = document.getElementById('company-name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const terms = document.getElementById('terms').checked;
+            
+            // Simple validation
+            let valid = true;
+            
+            if (!companyName) {
+                valid = false;
+                // Add error styling
+                document.getElementById('company-name').classList.add('border-red-500');
+            }
+            
+            if (!email || !email.includes('@')) {
+                valid = false;
+                document.getElementById('email').classList.add('border-red-500');
+            }
+            
+            if (!password || password.length < 8) {
+                valid = false;
+                document.getElementById('password').classList.add('border-red-500');
+            }
+            
+            if (password !== confirmPassword) {
+                valid = false;
+                document.getElementById('confirm-password').classList.add('border-red-500');
+            }
+            
+            if (!terms) {
+                valid = false;
+                // Maybe add some styling to the checkbox
+            }
+            
+            if (valid) {
+                // Show success message or redirect
+                alert('Inscription réussie! Redirection vers l\'étape suivante...');
+                // In a real app, you would submit the form or use fetch/ajax
+            } else {
+                // Show error message
+                alert('Veuillez corriger les erreurs dans le formulaire.');
+            }
+        });
+        
+        // Clear error styling on input
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('border-red-500');
+            });
+        });
+    </script>
+</body>
+</html>

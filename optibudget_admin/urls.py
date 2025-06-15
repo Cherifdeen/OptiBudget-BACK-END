@@ -1,14 +1,13 @@
 from django.urls import path
-from .views import login, profil, searchAccount, resetPassword, signup, changePassword, dashboardadmin, parametre
+from . import views
 
 urlpatterns = [
-    path('login/',login, name='login'),
-    path('profil/',profil, name='profil'),
-    path('resetPassword/',resetPassword, name='resetPassword'),
-    path('searchAccount/',searchAccount, name='searchAccount'),
-    path('signup/',signup, name='signup'),
-    path('changePassword/',changePassword, name='changePassword'),
-    path('dashboardadmin/',dashboardadmin, name='dashboardadmin'),
-    path('parametre/',parametre, name='parametre'),
+    path('login/', views.login, name='login'),
+    path('profil/', views.profil, name='profil'),
+    path('reset-password/', views.resetPassword, name='reset_password'),
+    path('search-account/', views.searchAccount, name='search_account'),
+    path('change-password/', views.changePassword, name='change_password'),
+    path('signup/', views.signup, name='signup'),
+    path('admin/dashboard/', views.dashboardadmin, name='dashboardadmin'),
+    path('admin/parametre/', views.parametre, name='parametre'),
 ]
- 
