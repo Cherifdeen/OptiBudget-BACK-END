@@ -14,6 +14,9 @@ from rest_framework.authtoken.models import Token
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth import authenticate
+
+
 
 from .models import CustomUser, UserPreferences
 from .serializers import (
@@ -152,6 +155,42 @@ class PasswordChangeView(APIView):
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class PasswordVerificationView(APIView):
+    """
+    Vue pour vérifier si le mot de passe saisi par l'utilisateur est correct
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Vérifier le mot de passe de l'utilisateur connecté
+        """
+        password = request.data.get('password')
+        
+        if not password:
+            return Response(
+                {'error': 'Le mot de passe est requis'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Vérification du mot de passe avec authenticate
+        user = authenticate(
+            username=request.user.username, 
+            password=password
+        )
+        
+        if user is not None:
+            return Response({
+                'valid': True,
+                'message': 'Mot de passe correct'
+            })
+        else:
+            return Response({
+                'valid': False,
+                'message': 'Mot de passe incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class UserPreferencesView(APIView):
     """
@@ -392,6 +431,15 @@ def password_reset_request(request):
         
         # Envoi de l'email (à adapter selon votre configuration)
         reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
+
+
+
+        """
+
+        Redis celery
+
+        """
+
         
         send_mail(
             'Réinitialisation de votre mot de passe',

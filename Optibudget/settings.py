@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-dq3vr^6852h77jqjlj#z-=7ff4^ums!4$oy8!v-fy-**+d7c$@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -35,7 +35,15 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
         # Vous pouvez ajouter d'autres classes d'authentification si nécessaire
+    ],
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        
+        'rest_framework.authentication.SessionAuthentication',  # Optionnel
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -54,8 +62,6 @@ INSTALLED_APPS = [
     'optibudget_admin',
     'accounts',
     'budgetManager',
-    'taches',
-    'statistiques',
     "rest_framework",
     'rest_framework.authtoken',
     'django_filters',

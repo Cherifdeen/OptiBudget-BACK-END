@@ -4,7 +4,6 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import CustomUser, UserPreferences
 
-
 class UserPreferencesSerializer(serializers.ModelSerializer):
     """
     Serializer pour les préférences utilisateur

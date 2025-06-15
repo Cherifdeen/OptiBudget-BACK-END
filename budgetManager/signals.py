@@ -1,202 +1,509 @@
-from django.db.models.signals import post_save, post_delete, pre_save
+from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import (
+from datetime import timedelta
+from budgetManager.models import (
     Budget, CategorieDepense, Depense, Entree, Employe, 
-    Notification, PaiementEmploye, MontantSalaire
+    Notification, PaiementEmploye, MontantSalaire, Conseil
 )
 
 
-def create_notification(user, message):
-    """Fonction utilitaire pour créer une notification"""
-    Notification.objects.create(
+def create_notification(user, message, type_notif="INFO"):
+    """Fonction utilitaire pour créer une notification avec évitement des doublons"""
+    # Éviter les notifications en double dans les 5 dernières minutes
+    recent_notification = Notification.objects.filter(
         user=user,
         message=message,
-        created_at=timezone.now()
-    )
+        type_notification=type_notif,
+        created_at__gte=timezone.now() - timedelta(minutes=5)
+    ).first()
+    
+    if not recent_notification:
+        Notification.objects.create(
+            user=user,
+            message=message,
+            created_at=timezone.now()
+        )
 
+# ============================================================================
+# SIGNAUX POUR BUDGET
+# ============================================================================
 
-# Signaux pour Budget
 @receiver(post_save, sender=Budget)
-def budget_created_updated(sender, instance, created, **kwargs):
-    """Signal déclenché lors de la création ou modification d'un budget"""
+def budget_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire unifié pour les événements post_save du Budget"""
     if created:
-        message = f"✅ Nouveau budget '{instance.nom}' créé avec un montant de {instance.montant} €"
-        create_notification(instance.user, message)
+        # Notification de création
+        message = f"✅ Budget '{instance.nom}' créé avec {instance.montant:,.2f} €"
+        create_notification(instance.user, message, "SUCCESS")
     else:
-        # Vérifier si le budget est proche de l'épuisement
-        if instance.montant <= instance.montant_initial * 0.1:  # 10% restant
-            message = f"⚠️ Attention! Votre budget '{instance.nom}' est presque épuisé. Reste: {instance.montant} €"
-            create_notification(instance.user, message)
-        elif instance.montant <= instance.montant_initial * 0.2:  # 20% restant
-            message = f"⚡ Votre budget '{instance.nom}' est faible. Reste: {instance.montant} €"
-            create_notification(instance.user, message)
+        # Gestion des mises à jour de budget
+        _handle_budget_update(instance)
+        # Vérifications pour budget existant
+        _check_budget_low_funds(instance)
+        _check_budget_expiry(instance)
+        _generate_budget_advice(instance)
+
+
+def _handle_budget_update(instance):
+    """Gérer les mises à jour de budget"""
+    try:
+        # Utiliser un flag personnalisé pour tracker les changements
+        if hasattr(instance, '_updating_from_serializer'):
+            # Cette mise à jour vient du serializer (reset complet)
+            message = f"🔄 Budget '{instance.nom}' réinitialisé: {instance.montant:,.2f} €"
+            create_notification(instance.user, message, "INFO")
+            return
+            
+        # Pour les autres mises à jour, on peut comparer avec la DB
+        old_instance = Budget.objects.get(pk=instance.pk)
+        
+        # Vérifier changement de nom
+        if old_instance.nom != instance.nom:
+            message = f"✏️ Budget renommé: '{old_instance.nom}' → '{instance.nom}'"
+            create_notification(instance.user, message, "INFO")
+        
+        # Vérifier changement de montant initial
+        if old_instance.montant_initial != instance.montant_initial:
+            difference = instance.montant_initial - old_instance.montant_initial
+            if difference > 0:
+                message = f"📈 Budget '{instance.nom}' augmenté: +{difference:,.2f} €"
+                create_notification(instance.user, message, "SUCCESS")
+            else:
+                message = f"📉 Budget '{instance.nom}' réduit: {difference:,.2f} €"
+                create_notification(instance.user, message, "WARNING")
+        
+        # Vérifier changement de date d'échéance
+        if old_instance.date_fin != instance.date_fin:
+            if instance.date_fin:
+                message = f"📅 Date d'échéance du budget '{instance.nom}' mise à jour: {instance.date_fin}"
+            else:
+                message = f"📅 Date d'échéance du budget '{instance.nom}' supprimée"
+            create_notification(instance.user, message, "INFO")
+            
+    except Budget.DoesNotExist:
+        # Cas où l'instance n'existe pas encore en DB
+        pass
+
+
+def _check_budget_low_funds(instance):
+    """Vérifier si le budget a des fonds faibles"""
+    if instance.montant_initial > 0:
+        remaining_percentage = (instance.montant / instance.montant_initial) * 100
+        
+        if remaining_percentage <= 5:  # 5% restant
+            message = f"🚨 URGENT! Budget '{instance.nom}' critique: {instance.montant:,.2f} € ({remaining_percentage:.1f}%)"
+            create_notification(instance.user, message, "ERROR")
+        elif remaining_percentage <= 10:  # 10% restant
+            message = f"⚠️ Budget '{instance.nom}' très faible: {instance.montant:,.2f} € ({remaining_percentage:.1f}%)"
+            create_notification(instance.user, message, "WARNING")
+        elif remaining_percentage <= 20:  # 20% restant
+            message = f"⚡ Budget '{instance.nom}' faible: {instance.montant:,.2f} € ({remaining_percentage:.1f}%)"
+            create_notification(instance.user, message, "WARNING")
+
+
+def _check_budget_expiry(instance):
+    """Vérifier la date d'expiration du budget"""
+    if not instance.date_fin:
+        return
+        
+    days_remaining = (instance.date_fin - timezone.now().date()).days
+    
+    if days_remaining == 0:
+        message = f"🚨 Budget '{instance.nom}' expire AUJOURD'HUI!"
+        create_notification(instance.user, message, "ERROR")
+    elif days_remaining == 1:
+        message = f"⏰ Budget '{instance.nom}' expire DEMAIN!"
+        create_notification(instance.user, message, "WARNING")
+    elif 2 <= days_remaining <= 7:
+        message = f"⏰ Budget '{instance.nom}' expire dans {days_remaining} jours"
+        create_notification(instance.user, message, "WARNING")
+    elif days_remaining < 0:
+        message = f"🚨 Budget '{instance.nom}' a expiré il y a {abs(days_remaining)} jour(s)!"
+        create_notification(instance.user, message, "ERROR")
+
+
+def _generate_budget_advice(instance):
+    """Générer des conseils automatiques pour le budget"""
+    if instance.montant_initial <= 0:
+        return
+        
+    usage_percentage = ((instance.montant_initial - instance.montant) / instance.montant_initial) * 100
+    
+    # Conseils basés sur l'utilisation
+    if usage_percentage >= 90:
+        conseil_message = f"Budget '{instance.nom}' utilisé à {usage_percentage:.1f}%. Planifiez un nouveau budget ou des revenus supplémentaires."
+        _create_auto_conseil(instance, "Budget Critique", conseil_message)
+    elif usage_percentage >= 75:
+        conseil_message = f"Budget '{instance.nom}' utilisé à {usage_percentage:.1f}%. Révisez vos dépenses non essentielles."
+        _create_auto_conseil(instance, "Gestion Budget", conseil_message)
+
+
+def _create_auto_conseil(instance, titre, message):
+    """Créer un conseil automatique sans doublon"""
+    # Vérifier s'il existe déjà un conseil similaire récent
+    existing = Conseil.objects.filter(
+        user=instance.user,
+        id_budget=instance,
+        nom__icontains=titre,
+        created_at__gte=timezone.now() - timedelta(days=1)
+    ).exists()
+    
+    if not existing:
+        Conseil.objects.create(
+            user=instance.user,
+            id_budget=instance,
+            nom=f"Conseil Auto - {titre}",
+            message=message
+        )
+        create_notification(instance.user, f"💡 Nouveau conseil pour '{instance.nom}'", "INFO")
 
 
 @receiver(post_delete, sender=Budget)
-def budget_deleted(sender, instance, **kwargs):
-    """Signal déclenché lors de la suppression d'un budget"""
+def budget_deleted_handler(sender, instance, **kwargs):
+    """Gestionnaire pour la suppression d'un budget"""
     message = f"🗑️ Budget '{instance.nom}' supprimé"
-    create_notification(instance.user, message)
+    create_notification(instance.user, message, "INFO")
 
 
-# Signaux pour CategorieDepense
+# ============================================================================
+# SIGNAUX POUR CATEGORIE DEPENSE
+# ============================================================================
+
 @receiver(post_save, sender=CategorieDepense)
-def categorie_depense_created_updated(sender, instance, created, **kwargs):
-    """Signal déclenché lors de la création ou modification d'une catégorie de dépense"""
+def categorie_depense_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire pour les catégories de dépense"""
     if created:
-        message = f"📂 Nouvelle catégorie '{instance.nom}' créée dans le budget '{instance.id_budget.nom}' avec {instance.montant} €"
-        create_notification(instance.user, message)
+        message = f"📂 Catégorie '{instance.nom}' créée: {instance.montant:,.2f} € (Budget: {instance.id_budget.nom})"
+        create_notification(instance.user, message, "SUCCESS")
+    else:
+        # Gestion des mises à jour de catégorie
+        _handle_category_update(instance)
+        # Vérifier les fonds faibles de la catégorie
+        _check_category_low_funds(instance)
+
+
+def _handle_category_update(instance):
+    """Gérer les mises à jour de catégorie"""
+    try:
+        # Récupérer l'ancienne version depuis la DB
+        old_instance = CategorieDepense.objects.get(pk=instance.pk)
         
-        # Notification pour le budget parent
-        budget_message = f"💰 {instance.montant} € alloués à la catégorie '{instance.nom}' du budget '{instance.id_budget.nom}'"
-        create_notification(instance.user, budget_message)
+        # Vérifier si le montant a changé
+        if old_instance.montant_initial != instance.montant_initial:
+            difference = instance.montant_initial - old_instance.montant_initial
+            if difference > 0:
+                message = f"📈 Catégorie '{instance.nom}' augmentée: +{difference:,.2f} €"
+                create_notification(instance.user, message, "SUCCESS")
+            else:
+                message = f"📉 Catégorie '{instance.nom}' réduite: {difference:,.2f} €"
+                create_notification(instance.user, message, "WARNING")
+        
+        # Vérifier si le nom a changé
+        if old_instance.nom != instance.nom:
+            message = f"✏️ Catégorie renommée: '{old_instance.nom}' → '{instance.nom}'"
+            create_notification(instance.user, message, "INFO")
+            
+    except CategorieDepense.DoesNotExist:
+        # Cas où l'instance n'existe pas encore en DB (création)
+        pass
+
+
+def _check_category_low_funds(instance):
+    """Vérifier si la catégorie a des fonds faibles"""
+    if instance.montant_initial > 0:
+        remaining_percentage = (instance.montant / instance.montant_initial) * 100
+        
+        if remaining_percentage <= 5:
+            message = f"🚨 Catégorie '{instance.nom}' critique: {instance.montant:,.2f} €"
+            create_notification(instance.user, message, "ERROR")
+        elif remaining_percentage <= 15:
+            message = f"⚠️ Catégorie '{instance.nom}' faible: {instance.montant:,.2f} €"
+            create_notification(instance.user, message, "WARNING")
 
 
 @receiver(post_delete, sender=CategorieDepense)
-def categorie_depense_deleted(sender, instance, **kwargs):
-    """Signal déclenché lors de la suppression d'une catégorie de dépense"""
-    message = f"🗑️ Catégorie '{instance.nom}' supprimée du budget '{instance.id_budget.nom}'"
-    create_notification(instance.user, message)
+def categorie_depense_deleted_handler(sender, instance, **kwargs):
+    """Gestionnaire pour suppression de catégorie"""
+    message = f"🗑️ Catégorie '{instance.nom}' supprimée"
+    create_notification(instance.user, message, "INFO")
 
 
-# Signaux pour Depense
+# ============================================================================
+# SIGNAUX POUR DEPENSE
+# ============================================================================
+
 @receiver(post_save, sender=Depense)
-def depense_created_updated(sender, instance, created, **kwargs):
-    """Signal déclenché lors de la création ou modification d'une dépense"""
+def depense_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire pour les dépenses"""
     if created:
         if instance.id_cat_depense:
-            message = f"💸 Nouvelle dépense '{instance.nom}': {instance.montant} € dans la catégorie '{instance.id_cat_depense.nom}'"
+            message = f"💸 Dépense '{instance.nom}': {instance.montant:,.2f} € (Catégorie: {instance.id_cat_depense.nom})"
         else:
-            message = f"💸 Nouvelle dépense '{instance.nom}': {instance.montant} € dans le budget '{instance.id_budget.nom}'"
-        create_notification(instance.user, message)
+            message = f"💸 Dépense '{instance.nom}': {instance.montant:,.2f} € (Budget: {instance.id_budget.nom})"
         
-        # Vérifier si la catégorie est proche de l'épuisement
+        create_notification(instance.user, message, "INFO")
+        
+        # Vérifier l'impact sur la catégorie
         if instance.id_cat_depense:
-            cat = instance.id_cat_depense
-            if cat.montant <= cat.montant_initial * 0.1:
-                warning_message = f"⚠️ La catégorie '{cat.nom}' est presque épuisée! Reste: {cat.montant} €"
-                create_notification(instance.user, warning_message)
+            _check_category_low_funds(instance.id_cat_depense)
+    else:
+        # Gestion des mises à jour de dépense
+        _handle_depense_update(instance)
+
+
+def _handle_depense_update(instance):
+    """Gérer les mises à jour de dépense"""
+    try:
+        old_instance = Depense.objects.get(pk=instance.pk)
+        
+        # Vérifier changement de montant
+        if old_instance.montant != instance.montant:
+            difference = instance.montant - old_instance.montant
+            if difference > 0:
+                message = f"📈 Dépense '{instance.nom}' augmentée: +{difference:,.2f} €"
+                create_notification(instance.user, message, "WARNING")
+            else:
+                message = f"📉 Dépense '{instance.nom}' réduite: {difference:,.2f} €"
+                create_notification(instance.user, message, "SUCCESS")
+        
+        # Vérifier changement de nom
+        if old_instance.nom != instance.nom:
+            message = f"✏️ Dépense renommée: '{old_instance.nom}' → '{instance.nom}'"
+            create_notification(instance.user, message, "INFO")
+        
+        # Vérifier changement de catégorie
+        if old_instance.id_cat_depense != instance.id_cat_depense:
+            old_cat = old_instance.id_cat_depense.nom if old_instance.id_cat_depense else "Aucune"
+            new_cat = instance.id_cat_depense.nom if instance.id_cat_depense else "Aucune"
+            message = f"📁 Dépense '{instance.nom}' déplacée: {old_cat} → {new_cat}"
+            create_notification(instance.user, message, "INFO")
+            
+    except Depense.DoesNotExist:
+        pass
+
+
+@receiver(pre_delete, sender=Depense)
+def depense_pre_delete_handler(sender, instance, **kwargs):
+    """Gestionnaire avant suppression de dépense - pour restaurer les montants"""
+    # Restaurer les montants avant suppression
+    if instance.id_cat_depense:
+        instance.id_cat_depense.montant += instance.montant
+        instance.id_cat_depense.save()
+    
+    instance.id_budget.montant += instance.montant
+    instance.id_budget.save()
 
 
 @receiver(post_delete, sender=Depense)
-def depense_deleted(sender, instance, **kwargs):
-    """Signal déclenché lors de la suppression d'une dépense"""
-    message = f"🗑️ Dépense '{instance.nom}' supprimée"
-    create_notification(instance.user, message)
+def depense_post_delete_handler(sender, instance, **kwargs):
+    """Gestionnaire après suppression de dépense"""
+    message = f"🗑️ Dépense '{instance.nom}' annulée: +{instance.montant:,.2f} € restaurés"
+    create_notification(instance.user, message, "SUCCESS")
 
 
-# Signaux pour Entree
+# ============================================================================
+# SIGNAUX POUR ENTREE
+# ============================================================================
+
 @receiver(post_save, sender=Entree)
-def entree_created_updated(sender, instance, created, **kwargs):
-    """Signal déclenché lors de la création ou modification d'une entrée"""
+def entree_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire pour les entrées"""
     if created:
-        message = f"💰 Nouvelle entrée '{instance.nom}': +{instance.montant} € dans le budget '{instance.id_budget.nom}'"
-        create_notification(instance.user, message)
+        message = f"💰 Entrée '{instance.nom}': +{instance.montant:,.2f} € (Budget: {instance.id_budget.nom})"
+        create_notification(instance.user, message, "SUCCESS")
+        
+        # Ajouter le montant au budget
+        instance.id_budget.montant += instance.montant
+        instance.id_budget.save()
+    else:
+        # Gestion des mises à jour d'entrée
+        _handle_entree_update(instance)
+
+
+def _handle_entree_update(instance):
+    """Gérer les mises à jour d'entrée"""
+    try:
+        old_instance = Entree.objects.get(pk=instance.pk)
+        
+        # Vérifier changement de montant
+        if old_instance.montant != instance.montant:
+            difference = instance.montant - old_instance.montant
+            
+            # Ajuster le budget avec la différence
+            instance.id_budget.montant += difference
+            instance.id_budget.save()
+            
+            if difference > 0:
+                message = f"📈 Entrée '{instance.nom}' augmentée: +{difference:,.2f} €"
+                create_notification(instance.user, message, "SUCCESS")
+            else:
+                message = f"📉 Entrée '{instance.nom}' réduite: {difference:,.2f} €"
+                create_notification(instance.user, message, "WARNING")
+        
+        # Vérifier changement de nom
+        if old_instance.nom != instance.nom:
+            message = f"✏️ Entrée renommée: '{old_instance.nom}' → '{instance.nom}'"
+            create_notification(instance.user, message, "INFO")
+            
+    except Entree.DoesNotExist:
+        pass
+
+
+@receiver(pre_delete, sender=Entree)
+def entree_pre_delete_handler(sender, instance, **kwargs):
+    """Gestionnaire avant suppression d'entrée"""
+    # Déduire le montant du budget
+    instance.id_budget.montant -= instance.montant
+    instance.id_budget.save()
 
 
 @receiver(post_delete, sender=Entree)
-def entree_deleted(sender, instance, **kwargs):
-    """Signal déclenché lors de la suppression d'une entrée"""
-    message = f"🗑️ Entrée '{instance.nom}' supprimée"
-    create_notification(instance.user, message)
+def entree_post_delete_handler(sender, instance, **kwargs):
+    """Gestionnaire après suppression d'entrée"""
+    message = f"🗑️ Entrée '{instance.nom}' supprimée: -{instance.montant:,.2f} €"
+    create_notification(instance.user, message, "INFO")
 
 
-# Signaux pour Employe (comptes entreprise seulement)
+# ============================================================================
+# SIGNAUX POUR EMPLOYE (Comptes Entreprise)
+# ============================================================================
 @receiver(post_save, sender=Employe)
-def employe_created_updated(sender, instance, created, **kwargs):
-    """Signal déclenché lors de la création ou modification d'un employé"""
+def employe_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire pour les employés"""
     if created:
-        message = f"👤 Nouvel employé ajouté: {instance.prenom} {instance.nom} - {instance.poste}"
-        create_notification(instance.user, message)
+        message = f"👤 Employé ajouté: {instance.prenom} {instance.nom} - {instance.poste}"
+        create_notification(instance.user, message, "SUCCESS")
     else:
-        # Vérifier changement de statut
-        if instance.actif != 'ES':  # Pas en service
-            status_labels = dict(instance.ACT)
-            message = f"📋 Statut de {instance.prenom} {instance.nom} changé: {status_labels.get(instance.actif, instance.actif)}"
-            create_notification(instance.user, message)
+        # Notification pour changement de statut
+        if hasattr(instance, '_state') and instance._state.adding is False:
+            check_employee_status_change(instance)
 
+def check_employee_status_change(instance):
+    """Vérifier les changements de statut d'employé"""
+    try:
+        old_instance = Employe.objects.get(pk=instance.pk)
+        
+        # Vérifier changement de statut
+        if old_instance.actif != instance.actif:
+            status_labels = dict(Employe.ACT)
+            old_status = status_labels.get(old_instance.actif, old_instance.actif)
+            new_status = status_labels.get(instance.actif, instance.actif)
+            message = f"📋 {instance.prenom} {instance.nom}: {old_status} → {new_status}"
+            # Type de notification selon le nouveau statut
+            notif_type = "WARNING" if instance.actif in ['LC', 'HS', 'DM'] else "INFO"  # Fixed status codes
+            create_notification(instance.user, message, notif_type)
+        
+        # Vérifier autres changements importants
+        changes = []
+        if old_instance.poste != instance.poste:
+            changes.append(f"poste: {old_instance.poste} → {instance.poste}")
+        # Removed salary comparison since Employe model doesn't have salaire field
+        if old_instance.email != instance.email:
+            changes.append(f"email: {old_instance.email} → {instance.email}")
+        if old_instance.telephone != instance.telephone:
+            changes.append(f"téléphone: {old_instance.telephone} → {instance.telephone}")
+        if old_instance.type_employe != instance.type_employe:
+            type_labels = dict(Employe.TYPE_EMPLOYE_CHOICES)
+            old_type = type_labels.get(old_instance.type_employe, old_instance.type_employe)
+            new_type = type_labels.get(instance.type_employe, instance.type_employe)
+            changes.append(f"type: {old_type} → {new_type}")
+            
+        if changes:
+            message = f"✏️ {instance.prenom} {instance.nom} - Mis à jour: {', '.join(changes)}"
+            create_notification(instance.user, message, "INFO")
+            
+    except Employe.DoesNotExist:
+        pass
 
 @receiver(post_delete, sender=Employe)
-def employe_deleted(sender, instance, **kwargs):
-    """Signal déclenché lors de la suppression d'un employé"""
-    message = f"🗑️ Employé {instance.prenom} {instance.nom} supprimé"
-    create_notification(instance.user, message)
+def employe_deleted_handler(sender, instance, **kwargs):
+    """Gestionnaire pour suppression d'employé"""
+    message = f"🗑️ Employé supprimé: {instance.prenom} {instance.nom}"
+    create_notification(instance.user, message, "INFO")
 
+# ============================================================================
+# SIGNAUX POUR PAIEMENT EMPLOYE
+# ============================================================================
 
-# Signaux pour PaiementEmploye
 @receiver(post_save, sender=PaiementEmploye)
-def paiement_employe_created(sender, instance, created, **kwargs):
-    """Signal déclenché lors de la création d'un paiement employé"""
+def paiement_employe_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire pour les paiements d'employés"""
     if created:
-        message = f"💵 Paiement de {instance.montant} € effectué à {instance.id_employe.prenom} {instance.id_employe.nom}"
-        create_notification(instance.user, message)
+        employe_nom = f"{instance.id_employe.prenom} {instance.id_employe.nom}"
+        message = f"💵 Salaire payé: {instance.montant:,.2f} € à {employe_nom}"
+        create_notification(instance.user, message, "SUCCESS")
         
-        # Notification pour le budget
-        budget_message = f"💰 {instance.montant} € déduits du budget '{instance.id_budget.nom}' pour le salaire de {instance.id_employe.prenom} {instance.id_employe.nom}"
-        create_notification(instance.user, budget_message)
+        # Notification budget si fonds faibles après paiement
+        if instance.id_budget.montant <= instance.id_budget.montant_initial * 0.2:
+            budget_message = f"⚠️ Budget '{instance.id_budget.nom}' faible après paiement salaire"
+            create_notification(instance.user, budget_message, "WARNING")
 
 
 @receiver(post_delete, sender=PaiementEmploye)
-def paiement_employe_deleted(sender, instance, **kwargs):
-    """Signal déclenché lors de la suppression d'un paiement employé"""
-    message = f"🗑️ Paiement de {instance.montant} € à {instance.id_employe.prenom} {instance.id_employe.nom} annulé"
-    create_notification(instance.user, message)
+def paiement_employe_deleted_handler(sender, instance, **kwargs):
+    """Gestionnaire pour suppression de paiement"""
+    employe_nom = f"{instance.id_employe.prenom} {instance.id_employe.nom}"
+    message = f"🗑️ Paiement annulé: {instance.montant:,.2f} € pour {employe_nom}"
+    create_notification(instance.user, message, "INFO")
 
 
-# Signal pour vérifier les dates d'échéance des budgets
-@receiver(post_save, sender=Budget)  
-def check_budget_expiry(sender, instance, created, **kwargs):
-    """Vérifier si un budget approche de sa date d'échéance"""
-    if not created and instance.date_fin:
-        days_remaining = (instance.date_fin - timezone.now().date()).days
-        
-        if days_remaining <= 3 and days_remaining > 0:
-            message = f"⏰ Votre budget '{instance.nom}' expire dans {days_remaining} jour(s)!"
-            create_notification(instance.user, message)
-        elif days_remaining <= 0:
-            message = f"🚨 Votre budget '{instance.nom}' a expiré!"
-            create_notification(instance.user, message)
+# ============================================================================
+# SIGNAUX POUR MONTANT SALAIRE
+# ============================================================================
 
-
-# Signal personnalisé pour les conseils automatiques
-@receiver(post_save, sender=Budget)
-def generate_budget_advice(sender, instance, created, **kwargs):
-    """Générer des conseils automatiques basés sur l'utilisation du budget"""
-    if not created:
-        usage_percentage = ((instance.montant_initial - instance.montant) / instance.montant_initial) * 100 if instance.montant_initial > 0 else 0
-        
-        # Conseil si plus de 80% du budget est utilisé
-        if usage_percentage >= 80:
-            from .models import Conseil
-            conseil_message = f"Votre budget '{instance.nom}' est utilisé à {usage_percentage:.1f}%. Considérez réviser vos dépenses ou augmenter le budget."
-            
-            # Éviter les doublons de conseils
-            existing_conseil = Conseil.objects.filter(
-                user=instance.user,
-                id_budget=instance,
-                message__icontains="utilisé à"
-            ).exists()
-            
-            if not existing_conseil:
-                Conseil.objects.create(
-                    user=instance.user,
-                    id_budget=instance,
-                    nom="Conseil automatique - Budget",
-                    message=conseil_message
-                )
-                
-                # Notification pour le nouveau conseil
-                create_notification(instance.user, f"💡 Nouveau conseil disponible pour votre budget '{instance.nom}'")
-
-
-# Signal pour configuration des salaires
 @receiver(post_save, sender=MontantSalaire)
-def salaire_config_updated(sender, instance, created, **kwargs):
-    """Signal déclenché lors de la configuration des salaires"""
+def montant_salaire_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire pour configuration des salaires"""
     if created:
-        message = "⚙️ Configuration des montants de salaires créée"
+        message = "⚙️ Configuration des salaires créée"
+        create_notification(instance.user, message, "SUCCESS")
     else:
-        message = "⚙️ Configuration des montants de salaires mise à jour"
+        message = "⚙️ Configuration des salaires mise à jour"
+        create_notification(instance.user, message, "INFO")
+
+
+# ============================================================================
+# SIGNAUX PERSONNALISÉS POUR CONSEILS ET ANALYSES
+# ============================================================================
+
+@receiver(post_save, sender=Conseil)
+def conseil_post_save_handler(sender, instance, created, **kwargs):
+    """Gestionnaire pour les conseils"""
+    if created and not instance.nom.startswith("Conseil Auto"):
+        # Seulement pour les conseils manuels
+        message = f"💡 Nouveau conseil ajouté: {instance.nom}"
+        create_notification(instance.user, message, "INFO")
+
+
+# ============================================================================
+# MODIFICATION REQUISE DANS LES SERIALIZERS
+# ============================================================================
+
+# IMPORTANT: Ajoutez cette méthode dans votre BudgetSerializer.update()
+# Pour marquer les mises à jour venant du serializer:
+
+"""
+def update(self, instance, validated_data):
+    # Marquer que cette mise à jour vient du serializer
+    instance._updating_from_serializer = True
     
-    create_notification(instance.user, message)
+    # ... votre code existant de mise à jour ...
+    
+    # Mettre à jour le montant_initial avec le nouveau montant
+    nouveau_montant = validated_data.get('montant', instance.montant)
+    validated_data['montant_initial'] = nouveau_montant
+    
+    return super().update(instance, validated_data)
+"""
+
+def cleanup_old_notifications(user, days=30):
+    """Nettoyer les anciennes notifications (à appeler périodiquement)"""
+    cutoff_date = timezone.now() - timedelta(days=days)
+    old_notifications = Notification.objects.filter(
+        user=user,
+        created_at__lt=cutoff_date
+    )
+    count = old_notifications.count()
+    old_notifications.delete()
+    return count

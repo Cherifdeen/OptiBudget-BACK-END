@@ -22,6 +22,6 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
     path('api/', include([
         path('accounts/', include('accounts.urls')),
-        path('budgets/', include('budgetManager.urls')),
+        path('budgetManager/', include('budgetManager.urls')),
     ])),
 ]

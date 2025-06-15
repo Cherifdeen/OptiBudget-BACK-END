@@ -1,13 +1,14 @@
 from django.db import models
 from django.conf import settings  # Ajout de l'import pour settings
 import uuid
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 
 
 class Budget(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    nom = models.CharField(max_length=100)
+    nom = models.CharField(max_length=100,unique=True)
     montant = models.FloatField(default=0.0)
     montant_initial = models.FloatField(default=0.0)
     date_fin = models.DateField(null=True, blank=True)
@@ -26,7 +27,7 @@ class Budget(models.Model):
 
 class CategorieDepense(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    nom = models.CharField(max_length=100)
+    nom = models.CharField(max_length=100,unique=True)
     description = models.TextField(null=True, blank=True)
     montant = models.FloatField(default=0.0)
     montant_initial = models.FloatField(default=0.0)
@@ -62,6 +63,11 @@ class Entree(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     id_budget = models.ForeignKey(Budget, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    def save(self, *args, **kwargs):
+        # Vérifier que l'utilisateur associé au budget a un compte entreprise
+        if self.id_budget.user.compte != 'entreprise':
+            raise ValidationError("Seuls les comptes entreprise peuvent créer des entrées")
+        super().save(*args, **kwargs)
 
 
 class Employe(models.Model):
@@ -110,6 +116,15 @@ class Employe(models.Model):
 class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     message = models.TextField()
+    TYPES=[
+        ('INFO','Information'),
+        ('WARNING','attention'),
+        ('SUCCESS','succes'),
+        ('ERROR','erreur'),
+        ('LOG','Evenement'),
+        
+    ]
+    type_notification=models.TextField(null=True,blank=True,default='INFO',choices=TYPES)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.CASCADE)  # Correction ici
@@ -146,38 +161,41 @@ class MontantSalaire(models.Model):
     bonus_direction = models.FloatField(default=0.0)
     indemnite_direction = models.FloatField(default=0.0)
     avance_direction = models.FloatField(default=0.0)
-    
     salaire_cadre = models.FloatField(default=0.0)
     bonus_cadre = models.FloatField(default=0.0)
     indemnite_cadre = models.FloatField(default=0.0)
     avance_cadre = models.FloatField(default=0.0)
-    
     salaire_employe = models.FloatField(default=0.0)
     bonus_employe = models.FloatField(default=0.0)
     indemnite_employe = models.FloatField(default=0.0)
     avance_employe = models.FloatField(default=0.0)
-    
     salaire_ouvrier = models.FloatField(default=0.0)
     bonus_ouvrier = models.FloatField(default=0.0)
     indemnite_ouvrier = models.FloatField(default=0.0)
     avance_ouvrier = models.FloatField(default=0.0)
-    
     salaire_cf = models.FloatField(default=0.0)
     bonus_cf = models.FloatField(default=0.0)
     indemnite_cf = models.FloatField(default=0.0)
     avance_cf = models.FloatField(default=0.0)
-    
     salaire_stagiaire = models.FloatField(default=0.0)
     bonus_stagiaire = models.FloatField(default=0.0)
     indemnite_stagiaire = models.FloatField(default=0.0)
     avance_stagiaire = models.FloatField(default=0.0)
-    
     salaire_intermediaire = models.FloatField(default=0.0)
     bonus_intermediaire = models.FloatField(default=0.0)
     indemnite_intermediaire = models.FloatField(default=0.0)
     avance_intermediaire = models.FloatField(default=0.0)
-    
     salaire_autre = models.FloatField(default=0.0)
     bonus_autre = models.FloatField(default=0.0)
     indemnite_autre = models.FloatField(default=0.0)
     avance_autre = models.FloatField(default=0.0)
+
+    salaire_hebdomadaire = models.FloatField(default=0.0)
+    salaire_horaire = models.FloatField(default=0.0)
+    salaire_journalier = models.FloatField(default=0.0)
+    salaire_mensuel = models.FloatField(default=0.0)
+    salaire_direction = models.FloatField(default=0.0)
+
+
+
+
