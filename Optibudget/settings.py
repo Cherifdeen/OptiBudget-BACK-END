@@ -1,5 +1,7 @@
 from pathlib import Path
 import os
+from decouple import config
+from decouple import Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,12 +11,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-dq3vr^6852h77jqjlj#z-=7ff4^ums!4$oy8!v-fy-**+d7c$@'
+SECRET_KEY = config('SECRET_KEY')
+GEMINI_API_KEY = config('GEMINI_API_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 
 # Application definition
@@ -32,9 +35,6 @@ REST_FRAMEWORK = {
     ],
 
 }
-
-
-
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -80,7 +80,6 @@ TEMPLATES = [
     },
 ]
 
-
 WSGI_APPLICATION = 'Optibudget.wsgi.application'
 
 
@@ -89,8 +88,8 @@ WSGI_APPLICATION = 'Optibudget.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': config('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'NAME': BASE_DIR / config('DB_NAME', default='db.sqlite3'),
     }
 }
 
@@ -130,10 +129,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_DIRS=[
+STATIC_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
-STATIC_ROOT=[
+STATIC_ROOT = [
     os.path.join(BASE_DIR, 'staticfiles')
 ]
 
@@ -142,23 +141,39 @@ STATIC_ROOT=[
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuration EMAIL pour MailHog
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'localhost'  # ou '127.0.0.1'
-EMAIL_PORT = 1025  # Port SMTP de MailHog
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = False
-EMAIL_HOST_USER = ''  # Pas d'authentification nécessaire
-EMAIL_HOST_PASSWORD = '' 
-DEFAULT_FROM_EMAIL="Optibudget@site.com"
+# Configuration EMAIL
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Optibudget@site.com')
 
+FRONTEND_URL = config('FRONTEND_URL', default='localhost:3000')
 
+PASSWORD_RESET_TIMEOUT = config('PASSWORD_RESET_TIMEOUT', default=600, cast=int)
 
-FRONTEND_URL="localhost:3000"
-
-PASSWORD_RESET_TIMEOUT = 600 # 10 minutes
-
-
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Broker Redis
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'budget_tasks.log',
+        },
+    },
+    'loggers': {
+        'budgetManager.tasks': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

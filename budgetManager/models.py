@@ -63,11 +63,6 @@ class Entree(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     id_budget = models.ForeignKey(Budget, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
-    def save(self, *args, **kwargs):
-        # Vérifier que l'utilisateur associé au budget a un compte entreprise
-        if self.id_budget.user.compte != 'entreprise':
-            raise ValidationError("Seuls les comptes entreprise peuvent créer des entrées")
-        super().save(*args, **kwargs)
 
 
 class Employe(models.Model):

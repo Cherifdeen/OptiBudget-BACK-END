@@ -29,6 +29,37 @@ def create_notification(user, message, type_notif="INFO"):
 # SIGNAUX POUR BUDGET
 # ============================================================================
 
+def _generate_budget_advice(budget_instance):
+    """Génère des conseils personnalisés pour le budget"""
+    try:
+        # Calculer le pourcentage utilisé
+        total_depenses = budget_instance.categorie_depenses.aggregate(
+            total=models.Sum('montant_utilise')
+        )['total'] or 0
+        
+        usage_percentage = (total_depenses / budget_instance.montant) * 100 if budget_instance.montant > 0 else 0
+        
+        # Générer des conseils basés sur l'utilisation
+        if usage_percentage >= 90:
+            message = f"🚨 Attention! Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Réduisez vos dépenses immédiatement."
+            notification_type = "WARNING"
+        elif usage_percentage >= 75:
+            message = f"⚠️ Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Surveillez vos dépenses."
+            notification_type = "INFO"
+        elif usage_percentage >= 50:
+            message = f"💡 Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Vous êtes sur la bonne voie!"
+            notification_type = "SUCCESS"
+        else:
+            # Pas de conseil nécessaire pour les budgets peu utilisés
+            return
+            
+        create_notification(budget_instance.user, message, notification_type)
+        
+    except Exception as e:
+        # Log l'erreur mais ne pas faire échouer le signal
+        print(f"Erreur lors de la génération des conseils budget: {e}")
+
+
 @receiver(post_save, sender=Budget)
 def budget_post_save_handler(sender, instance, created, **kwargs):
     """Gestionnaire unifié pour les événements post_save du Budget"""
