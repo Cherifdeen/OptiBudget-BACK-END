@@ -41,13 +41,13 @@ class CustomUser(AbstractUser):
     
     statut_compte = models.BooleanField(default=True)
     
-    # SOLUTION : Ajouter related_name pour éviter les conflits
+    
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name='groups',
         blank=True,
         help_text='The groups this user belongs to.',
-        related_name='custom_user_set',  # Évite le conflit
+        related_name='custom_user_set',  
         related_query_name='custom_user',
     )
     
@@ -56,7 +56,7 @@ class CustomUser(AbstractUser):
         verbose_name='user permissions',
         blank=True,
         help_text='Specific permissions for this user.',
-        related_name='custom_user_set',  # Évite le conflit
+        related_name='custom_user_set',  
         related_query_name='custom_user',
     )
     

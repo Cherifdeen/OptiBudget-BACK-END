@@ -1,64 +1,30 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
-
 
 app_name = 'budget'
 
+# Configuration du router principal
+router = DefaultRouter()
+router.register(r'budgets', views.BudgetViewSet, basename='budget')
+router.register(r'categories-depense', views.CategorieDepenseViewSet, basename='categoriedepense')
+router.register(r'depenses', views.DepenseViewSet, basename='depense')
+router.register(r'entrees', views.EntreeViewSet, basename='entree')
+router.register(r'notifications', views.NotificationViewSet, basename='notification')
+router.register(r'conseils', views.ConseilViewSet, basename='conseil')
+router.register(r'employes', views.EmployeViewSet, basename='employe')
+router.register(r'paiements-employes', views.PaiementEmployeViewSet, basename='paiements-employes')
+router.register(r'montants-salaire', views.MontantSalaireViewSet, basename='montantsalaire')
+
 urlpatterns = [
-    # URLs pour Budget
-    path('budgets/', views.BudgetViewSet.as_view({'get': 'list', 'post': 'create'}), name='budget-list'),
-    path('budgets/<uuid:pk>/', views.BudgetViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='budget-detail'),
-    path('budgets/<uuid:pk>/categories/', views.BudgetViewSet.as_view({'get': 'categories'}), name='budget-categories'),
-    path('budgets/<uuid:pk>/depenses/', views.BudgetViewSet.as_view({'get': 'depenses'}), name='budget-depenses'),
-    path('budgets/<uuid:pk>/resume/', views.BudgetViewSet.as_view({'get': 'resume'}), name='budget-resume'),
-
-    # URLs pour CategorieDepense
-    path('categories-depense/', views.CategorieDepenseViewSet.as_view({'get': 'list', 'post': 'create'}), name='categoriedepense-list'),
-    path('categories-depense/<uuid:pk>/', views.CategorieDepenseViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='categoriedepense-detail'),
-    path('categories-depense/<uuid:pk>/depenses/', views.CategorieDepenseViewSet.as_view({'get': 'depenses'}), name='categoriedepense-depenses'),
-
-    # URLs pour Depense
-    path('depenses/', views.DepenseViewSet.as_view({'get': 'list', 'post': 'create'}), name='depense-list'),
-    path('depenses/<uuid:pk>/', views.DepenseViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='depense-detail'),
-    path('depenses/statistiques/', views.DepenseViewSet.as_view({'get': 'statistiques'}), name='depense-statistiques'),
-
-    # URLs pour Entree
-    path('entrees/', views.EntreeViewSet.as_view({'get': 'list', 'post': 'create'}), name='entree-list'),
-    path('entrees/<uuid:pk>/', views.EntreeViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='entree-detail'),
-    path('entrees/statistiques/', views.EntreeViewSet.as_view({'get': 'statistiques'}), name='entree-statistiques'),
-
-    # URLs pour Notification
-    path('notifications/', views.NotificationViewSet.as_view({'get': 'list', 'post': 'create'}), name='notification-list'),
-    path('notifications/<uuid:pk>/', views.NotificationViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='notification-detail'),
-    path('notifications/non-lues/', views.NotificationViewSet.as_view({'get': 'non_lues'}), name='notification-non-lues'),
-    path('notifications/<uuid:pk>/marquer-lue/', views.NotificationViewSet.as_view({'post': 'marquer_lue'}), name='notification-marquer-lue'),
-    path('notifications/marquer-toutes-lues/', views.NotificationViewSet.as_view({'post': 'marquer_toutes_lues'}), name='notification-marquer-toutes-lues'),
-
-    # URLs pour Conseil
-    path('conseils/', views.ConseilViewSet.as_view({'get': 'list', 'post': 'create'}), name='conseil-list'),
-    path('conseils/<uuid:pk>/', views.ConseilViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='conseil-detail'),
-    path('conseils/recents/', views.ConseilViewSet.as_view({'get': 'recents'}), name='conseil-recents'),
-
-    # URLs pour Employe (comptes entreprise)
-    path('employes/', views.EmployeViewSet.as_view({'get': 'list', 'post': 'create'}), name='employe-list'),
-    path('employes/<uuid:pk>/', views.EmployeViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='employe-detail'),
-    path('employes/<uuid:pk>/paiements/', views.EmployeViewSet.as_view({'get': 'paiements'}), name='employe-paiements'),
-    path('employes/actifs/', views.EmployeViewSet.as_view({'get': 'actifs'}), name='employe-actifs'),
-    path('employes/par_statut/<str:statut>/', views.EmployeViewSet.as_view({'get': 'par_statut'}), name='employe-par-statut'),
-
-    # URLs pour PaiementEmploye
-    path('paiements-employes/', views.PaiementEmployeViewSet.as_view({
-        'get': 'list',
-        'post': 'create'
-    }), name='paiements-employes-list'),
+    # Inclusion des URLs générées par le router
+    path('', include(router.urls)),
     
-    path('paiements-employes/<uuid:pk>/', views.PaiementEmployeViewSet.as_view({
-        'get': 'retrieve',
-        'put': 'update',
-        'patch': 'partial_update',
-        'delete': 'destroy'
-    }), name='paiements-employes-detail'),
-    
+    # URLs personnalisées susceptibles d'être perturbées - conservées en path
+    # Statistiques globales et rapports
+    path('categories-depense/stats-globales/', 
+         views.CategorieDepenseViewSet.as_view({'get': 'stats_globales'}), 
+         name='categoriedepense-stats-globales'),
     
     path('paiements-employes/paiement-global/', 
          views.PaiementEmployeViewSet.as_view({'post': 'paiement_global'}), 
@@ -75,30 +41,47 @@ urlpatterns = [
     path('paiements-employes/par-employe/', 
          views.PaiementEmployeViewSet.as_view({'get': 'par_employe'}), 
          name='paiements-par-employe'),
-
-    # URLs pour MontantSalaire
-    path('montants-salaire/', views.MontantSalaireViewSet.as_view({'get': 'list', 'post': 'create'}), name='montantsalaire-list'),
-    path('montants-salaire/<int:pk>/', views.MontantSalaireViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='montantsalaire-detail'),
-    path('montants-salaire/calculer/', views.MontantSalaireViewSet.as_view({'post': 'calculer'}), name='montantsalaire-calculer'),
-
-
-    # URLs pour statistique
+    
+    path('montants-salaire/calculer/', 
+         views.MontantSalaireViewSet.as_view({'post': 'calculer'}), 
+         name='montantsalaire-calculer'),
+    
+    path('notifications/non-lues/', 
+         views.NotificationViewSet.as_view({'get': 'non_lues'}), 
+         name='notification-non-lues'),
+    
+    path('notifications/marquer-toutes-lues/', 
+         views.NotificationViewSet.as_view({'post': 'marquer_toutes_lues'}), 
+         name='notification-marquer-toutes-lues'),
+    
+    path('employes/actifs/', 
+         views.EmployeViewSet.as_view({'get': 'actifs'}), 
+         name='employe-actifs'),
+    
+    path('employes/par_statut/<str:statut>/', 
+         views.EmployeViewSet.as_view({'get': 'par_statut'}), 
+         name='employe-par-statut'),
+    
+    path('conseils/recents/', 
+         views.ConseilViewSet.as_view({'get': 'recents'}), 
+         name='conseil-recents'),
+    
+    # URLs de statistiques personnalisées (fonctions de vues)
     path('budgets/<uuid:budget_id>/statistics/', 
          views.budget_statistics, 
          name='budget-statistics'),
-    
     
     path('budgets/statistics/', 
          views.all_budgets_statistics, 
          name='all-budgets-statistics'),
     
-    
     path('categories/<uuid:category_id>/statistics/', 
          views.category_statistics, 
          name='category-statistics'),
-    
     
     path('financial-report/', 
          views.global_financial_report, 
          name='global-financial-report'),
 ]
+
+

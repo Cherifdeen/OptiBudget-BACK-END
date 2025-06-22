@@ -1,0 +1,12 @@
+# Fichiers de configuration sensibles
+#.env   (.............)
+.env.local
+.env.production
+
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/

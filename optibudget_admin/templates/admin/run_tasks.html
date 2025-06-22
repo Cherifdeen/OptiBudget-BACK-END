@@ -1,0 +1,238 @@
+run_tasks_html_content = '''
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Exécution des tâches - {{ site_title|default:"Django Admin" }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Accueil</a>
+    &rsaquo; Exécution des tâches
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+    <h1>🚀 Exécution des tâches de budget</h1>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-row">
+        <div class="form-group">
+            <p><strong>Sélectionnez la tâche à exécuter immédiatement :</strong></p>
+            
+            <form method="post" style="margin-bottom: 20px;">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task">Tâche à exécuter :</label>
+                        <select name="task" id="task" required style="width: 350px; padding: 8px; font-size: 14px;">
+                            <option value="">-- Sélectionner une tâche --</option>
+                            {% for value, label in tasks %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <button type="submit" class="button default" style="padding: 10px 20px; margin-right: 10px;">
+                        ▶️ Exécuter la tâche
+                    </button>
+                    <button type="button" onclick="runTaskAjax()" class="button" style="padding: 10px 20px;">
+                        ⚡ Exécuter (AJAX)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="module">
+        <h2>📊 Description des tâches</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="padding: 12px; border: 1px solid #ddd;">Tâche</th>
+                    <th style="padding: 12px; border: 1px solid #ddd;">Description</th>
+                    <th style="padding: 12px; border: 1px solid #ddd;">Fréquence normale</th>
+                    <th style="padding: 12px; border: 1px solid #ddd;">Action rapide</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Marquer budgets expirés</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Marque tous les budgets qui ont dépassé leur date d'expiration</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Tous les jours à minuit</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <button onclick="runSingleTask('marquer_expires')" class="button btn-small">Exécuter</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Statistiques hebdomadaires</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Génère un rapport statistique hebdomadaire des budgets</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Dimanches à 23h</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <button onclick="runSingleTask('stats_hebdo')" class="button btn-small">Exécuter</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Bilans budgets expirés</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Génère les bilans finaux des budgets qui ont expiré</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Tous les jours à 1h</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <button onclick="runSingleTask('bilans_expires')" class="button btn-small">Exécuter</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Rapport quotidien</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Génère le rapport quotidien de l'état des budgets</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Tous les jours à 8h</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <button onclick="runSingleTask('rapport_quotidien')" class="button btn-small">Exécuter</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><strong>Nettoyer notifications</strong></td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Supprime les anciennes notifications pour libérer l'espace</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Dimanches à 2h</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">
+                        <button onclick="runSingleTask('nettoyer_notifs')" class="button btn-small">Exécuter</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="help" style="background-color: #e8f4fd; padding: 15px; border-radius: 8px; margin-top: 20px;">
+        <h3>📋 Instructions</h3>
+        <ul>
+            <li><strong>Toutes les tâches</strong> : Exécute toutes les tâches en une fois</li>
+            <li><strong>Tâche individuelle</strong> : Exécute seulement la tâche sélectionnée</li>
+            <li><strong>Actions rapides</strong> : Boutons pour exécuter directement chaque tâche</li>
+            <li>Les tâches sont exécutées en arrière-plan via Celery</li>
+            <li>Vérifiez les logs Celery pour suivre l'exécution</li>
+        </ul>
+        
+        <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 4px;">
+            <strong>💡 Conseil :</strong> Pour vérifier l'état des tâches, utilisez :
+            <code style="background: #f8f9fa; padding: 2px 4px;">celery -A votre_projet inspect active</code>
+        </div>
+    </div>
+</div>
+
+<div id="ajax-result" style="margin-top: 20px;"></div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function runTaskAjax() {
+    const taskSelect = document.getElementById('task');
+    const task = taskSelect.value;
+    
+    if (!task) {
+        alert('Veuillez sélectionner une tâche');
+        return;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+    
+    fetch('/admin/run-task-api/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrftoken,
+        },
+        body: 'task=' + encodeURIComponent(task)
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('ajax-result');
+        if (data.status === 'success') {
+            resultDiv.innerHTML = '<div class="alert alert-success">✅ ' + data.message + 
+                (data.task_id ? ' (ID: ' + data.task_id + ')' : '') + 
+                (data.task_ids ? ' (IDs: ' + JSON.stringify(data.task_ids) + ')' : '') + '</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-error">❌ ' + data.message + '</div>';
+        }
+    })
+    .catch(error => {
+        document.getElementById('ajax-result').innerHTML = 
+            '<div class="alert alert-error">❌ Erreur: ' + error + '</div>';
+    });
+}
+
+function runSingleTask(taskName) {
+    const csrftoken = getCookie('csrftoken');
+    
+    fetch('/admin/run-task-api/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrftoken,
+        },
+        body: 'task=' + encodeURIComponent(taskName)
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('ajax-result');
+        if (data.status === 'success') {
+            resultDiv.innerHTML = '<div class="alert alert-success">✅ ' + data.message + ' (ID: ' + data.task_id + ')</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-error">❌ ' + data.message + '</div>';
+        }
+    })
+    .catch(error => {
+        document.getElementById('ajax-result').innerHTML = 
+            '<div class="alert alert-error">❌ Erreur: ' + error + '</div>';
+    });
+}
+</script>
+
+<style>
+.alert {
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 6px;
+    font-weight: bold;
+}
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+.alert-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+.btn-small {
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+}
+code {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+</style>
+{% endblock %}
+'''

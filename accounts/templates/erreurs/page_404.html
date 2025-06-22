@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+{% block title %}
+  Erreur 404
+{% endblock %}
+
+{% block content %}
+    <main class="content-wrapper">
+            <div class="container mx-auto px-4 py-12">
+                <!-- Error Container - 404 Not Found -->
+                <div id="error-404" class="error-container bg-white rounded-lg shadow-lg max-w-4xl mx-auto mb-8">
+                    <div class="p-8 md:p-12">
+                        <div class="flex flex-col md:flex-row items-center">
+                            <div class="mb-6 md:mb-0 md:mr-10 flex-shrink-0">
+                                <div class="bg-purple-100 p-6 rounded-full pulse-animation">
+                                    <i data-feather="help-circle" class="h-14 w-14 text-purple-500"></i>
+                                </div>
+                            </div>
+                            <div class="text-center md:text-left">
+                                <div class="flex items-center justify-center md:justify-start mb-4">
+                                    <h1 class="text-4xl font-bold text-gray-800">404</h1>
+                                    <div class="ml-4 pl-4 border-l-2 border-gray-200">
+                                        <h2 class="text-xl font-medium text-gray-700">Not Found</h2>
+                                        <p class="text-gray-500 mt-1">Page non trouvée</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mb-6 text-lg">La page ou la ressource demandée n'existe pas ou a été déplacée.</p>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                                    <h3 class="font-medium text-gray-800 mb-2">Causes possibles :</h3>
+                                    <ul class="text-gray-600 space-y-1 list-disc pl-5">
+                                        <li>L'URL saisie est incorrecte</li>
+                                        <li>La page a été supprimée ou déplacée</li>
+                                        <li>Lien obsolète ou rompu</li>
+                                        <li>La ressource n'existe plus</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="bg-blue-50 p-4 rounded-lg mb-6 border-l-4 border-blue-500">
+                                    <h3 class="font-medium text-blue-800 mb-2">Solutions recommandées :</h3>
+                                    <ul class="text-blue-700 space-y-1 list-disc pl-5">
+                                        <li>Vérifiez l'URL pour des erreurs de frappe</li>
+                                        <li>Utilisez la barre de recherche pour trouver ce que vous cherchez</li>
+                                        <li>Retournez à la page d'accueil et naviguez vers votre destination</li>
+                                        <li>Consultez la carte du site si disponible</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+                                    <a href="#" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center">
+                                        <i data-feather="home" class="h-4 w-4 mr-2"></i>
+                                        Page d'accueil
+                                    </a>
+                                    <a href="#" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition-colors flex items-center">
+                                        <i data-feather="search" class="h-4 w-4 mr-2"></i>
+                                        Rechercher
+                                    </a>
+                                    <a href="#" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition-colors flex items-center">
+                                        <i data-feather="map" class="h-4 w-4 mr-2"></i>
+                                        Plan du site
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 rounded-b-lg">
+                        <div class="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+                            <p>Code d'erreur: <span class="font-mono">404_NOT_FOUND</span></p>
+                            <p class="mt-2 md:mt-0">ID Technique: <span class="font-mono">ERR-404-13579</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </div>
+        </main>
+     <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialiser les icônes Feather
+                feather.replace();
+                
+                // Animation pulsation pour les icônes d'erreur
+                const addPulseAnimation = () => {
+                    const pulseElements = document.querySelectorAll('.pulse-animation');
+                    pulseElements.forEach(el => {
+                        // Ajouter une classe CSS pour l'animation
+                        el.classList.add('animate-pulse');
+                    });
+                };
+                
+                // Fonctions pour afficher/masquer les conteneurs d'erreur
+                const showError = (errorCode) => {
+                    // Masquer tous les conteneurs d'erreur
+                    const errorContainers = document.querySelectorAll('.error-container');
+                    errorContainers.forEach(container => {
+                        container.style.display = 'none';
+                    });
+                    
+                    // Afficher le conteneur d'erreur spécifié
+                    const targetContainer = document.getElementById(`error-${errorCode}`);
+                    if (targetContainer) {
+                        targetContainer.style.display = 'block';
+                        
+                        // Ajouter une animation d'entrée
+                        targetContainer.classList.add('fade-in');
+                        
+                        // Faire défiler jusqu'au conteneur d'erreur
+                        targetContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                };
+                
+                // Fonction pour obtenir le code d'erreur depuis l'URL
+                const getErrorCodeFromURL = () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    return urlParams.get('code');
+                };
+                
+                // Gestionnaire de clic pour les boutons "Actualiser la page"
+                const setupRefreshButtons = () => {
+                    const refreshButtons = document.querySelectorAll('[data-feather="refresh-cw"]').forEach(icon => {
+                        const button = icon.closest('a');
+                        if (button) {
+                            button.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                location.reload();
+                            });
+                        }
+                    });
+                };
+                
+                // Gestionnaire de clic pour les boutons "Retour à l'accueil"
+                const setupHomeButtons = () => {
+                    const homeButtons = document.querySelectorAll('[data-feather="arrow-left"], [data-feather="home"]').forEach(icon => {
+                        const button = icon.closest('a');
+                        if (button) {
+                            button.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                window.location.href = '/';
+                            });
+                        }
+                    });
+                };
+                
+                // Afficher les informations techniques supplémentaires
+                const setupTechnicalInfoToggle = () => {
+                    const techInfoContainers = document.querySelectorAll('.bg-gray-50');
+                    techInfoContainers.forEach(container => {
+                        // Ajouter un bouton pour afficher/masquer les infos techniques
+                        const toggleButton = document.createElement('button');
+                        toggleButton.innerHTML = 'Afficher détails techniques';
+                        toggleButton.className = 'text-blue-500 hover:text-blue-700 text-sm font-medium focus:outline-none mt-2';
+                        toggleButton.setAttribute('type', 'button');
+                        
+                        let detailsVisible = false;
+                        
+                        // Masquer initialement les infos techniques
+                        const details = container.querySelector('.flex');
+                        details.style.display = 'none';
+                        
+                        // Ajouter le bouton au conteneur
+                        container.appendChild(toggleButton);
+                        
+                        // Ajouter un gestionnaire d'événement au bouton
+                        toggleButton.addEventListener('click', () => {
+                            detailsVisible = !detailsVisible;
+                            details.style.display = detailsVisible ? 'flex' : 'none';
+                            toggleButton.innerHTML = detailsVisible ? 'Masquer détails techniques' : 'Afficher détails techniques';
+                        });
+                    });
+                };
+                
+                // Fonction pour copier l'ID technique dans le presse-papiers
+                const setupCopyTechnicalId = () => {
+                    const techIds = document.querySelectorAll('.font-mono');
+                    techIds.forEach(id => {
+                        id.style.cursor = 'pointer';
+                        id.setAttribute('title', 'Cliquer pour copier');
+                        
+                        id.addEventListener('click', () => {
+                            const textToCopy = id.textContent;
+                            navigator.clipboard.writeText(textToCopy).then(() => {
+                                // Afficher une notification de copie réussie
+                                const notification = document.createElement('div');
+                                notification.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md';
+                                notification.innerHTML = `
+                                    <div class="flex items-center">
+                                        <div class="py-1 mr-3">
+                                            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold">Copié</p>
+                                            <p class="text-sm">${textToCopy} a été copié dans le presse-papiers</p>
+                                        </div>
+                                    </div>
+                                `;
+                                document.body.appendChild(notification);
+                                
+                                // Supprimer la notification après 3 secondes
+                                setTimeout(() => {
+                                    notification.remove();
+                                }, 3000);
+                            });
+                        });
+                    });
+                };
+                
+                // Ajouter des effets de survol pour les boutons
+                const setupButtonHoverEffects = () => {
+                    const buttons = document.querySelectorAll('a');
+                    buttons.forEach(button => {
+                        button.addEventListener('mouseenter', () => {
+                            button.style.transform = 'translateY(-2px)';
+                            button.style.transition = 'transform 0.2s ease';
+                        });
+                        
+                        button.addEventListener('mouseleave', () => {
+                            button.style.transform = 'translateY(0)';
+                        });
+                    });
+                };
+                
+                // Ajouter un compteur pour les erreurs 503 (maintenance)
+                const setupMaintenanceCountdown = () => {
+                    const error503Container = document.getElementById('error-503');
+                    if (error503Container) {
+                        const countdownDiv = document.createElement('div');
+                        countdownDiv.className = 'mt-4 bg-yellow-50 p-4 rounded-lg border border-yellow-100';
+                        countdownDiv.innerHTML = `
+                            <h3 class="font-medium text-yellow-800 mb-2">Maintenance prévue</h3>
+                            <p class="text-yellow-700">Retour estimé dans : <span id="countdown">15:00</span></p>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                                <div id="progress-bar" class="bg-yellow-500 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        `;
+                        
+                        // Insérer le compteur avant la section des solutions recommandées
+                        const solutionsSection = error503Container.querySelector('.bg-blue-50');
+                        solutionsSection.parentNode.insertBefore(countdownDiv, solutionsSection);
+                        
+                        // Configurer le compteur
+                        let minutes = 15;
+                        let seconds = 0;
+                        const totalTime = minutes * 60 + seconds;
+                        let timeRemaining = totalTime;
+                        
+                        const countdownInterval = setInterval(() => {
+                            timeRemaining--;
+                            
+                            if (timeRemaining <= 0) {
+                                clearInterval(countdownInterval);
+                                document.getElementById('countdown').textContent = "0:00";
+                                document.getElementById('progress-bar').style.width = "100%";
+                                
+                                // Actualiser la page lorsque le compteur atteint zéro
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1500);
+                                
+                                return;
+                            }
+                            
+                            const minutesLeft = Math.floor(timeRemaining / 60);
+                            const secondsLeft = timeRemaining % 60;
+                            
+                            document.getElementById('countdown').textContent = `${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}`;
+                            
+                            // Mettre à jour la barre de progression
+                            const progressPercentage = ((totalTime - timeRemaining) / totalTime) * 100;
+                            document.getElementById('progress-bar').style.width = `${progressPercentage}%`;
+                            
+                        }, 1000);
+                    }
+                };
+                
+                // Initialiser les fonctionnalités
+                addPulseAnimation();
+                setupRefreshButtons();
+                setupHomeButtons();
+                setupTechnicalInfoToggle();
+                setupCopyTechnicalId();
+                setupButtonHoverEffects();
+                setupMaintenanceCountdown();
+                
+                // Obtenir et afficher le code d'erreur spécifié dans l'URL
+                const errorCode = getErrorCodeFromURL();
+                if (errorCode && ['400', '401', '403', '404', '500', '503'].includes(errorCode)) {
+                    showError(errorCode);
+                } else {
+                    // Par défaut, afficher l'erreur 404
+                    showError('404');
+                }
+                
+                // Ajouter des styles CSS dynamiquement
+                const style = document.createElement('style');
+                style.textContent = `
+                    .fade-in {
+                        animation: fadeIn 0.5s ease-in-out;
+                    }
+                    
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    
+                    .animate-pulse {
+                        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                    }
+                    
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.7; }
+                    }
+                `;
+                document.head.appendChild(style);
+            });
+        </script>
+{% endblock %}

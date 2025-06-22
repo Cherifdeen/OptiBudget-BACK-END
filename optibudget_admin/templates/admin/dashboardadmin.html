@@ -1,0 +1,833 @@
+{% extends 'accounts/base.html' %}
+{% block title %}
+  Tableau de bord Administrateur
+{% endblock %}
+
+{% block content %}
+    <main class="px-4 md:px-6 py-6">
+    <!-- Page Title & Filters Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Tableau de bord Administrateur</h2>
+            <p class="text-gray-600 mt-1">Visualisez les performances globales de la plateforme</p>
+        </div>
+        <div class="mt-4 md:mt-0 flex flex-col sm:flex-row gap-3">
+            <div class="relative">
+                <select class="bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option>Tous les services</option>
+                    <option>Service Finance</option>
+                    <option>Service RH</option>
+                    <option>Service Marketing</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <i data-feather="chevron-down" class="h-4 w-4"></i>
+                </div>
+            </div>
+            <div class="relative">
+                <select class="bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option>Mois en cours</option>
+                    <option>30 derniers jours</option>
+                    <option>Ce trimestre</option>
+                    <option>Cette année</option>
+                    <option>Période personnalisée</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <i data-feather="chevron-down" class="h-4 w-4"></i>
+                </div>
+            </div>
+            <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm flex items-center">
+                <i data-feather="download" class="h-4 w-4 mr-2"></i>
+                Exporter
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Utilisateurs actifs</p>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">1,384</h3>
+                </div>
+                <div class="bg-blue-100 rounded-full p-3">
+                    <i data-feather="users" class="h-6 w-6 text-blue-500"></i>
+                </div>
+            </div>
+            <div class="flex items-center mt-4">
+                <span class="flex items-center text-green-500 text-sm">
+                    <i data-feather="arrow-up" class="h-3 w-3 mr-1"></i>
+                    12.5%
+                </span>
+                <span class="text-gray-500 text-xs ml-2">vs mois précédent</span>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Entreprises inscrites</p>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">93</h3>
+                </div>
+                <div class="bg-purple-100 rounded-full p-3">
+                    <i data-feather="briefcase" class="h-6 w-6 text-purple-500"></i>
+                </div>
+            </div>
+            <div class="flex items-center mt-4">
+                <span class="flex items-center text-green-500 text-sm">
+                    <i data-feather="arrow-up" class="h-3 w-3 mr-1"></i>
+                    7.2%
+                </span>
+                <span class="text-gray-500 text-xs ml-2">vs mois précédent</span>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Transactions totales</p>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">25,429</h3>
+                </div>
+                <div class="bg-green-100 rounded-full p-3">
+                    <i data-feather="repeat" class="h-6 w-6 text-green-500"></i>
+                </div>
+            </div>
+            <div class="flex items-center mt-4">
+                <span class="flex items-center text-green-500 text-sm">
+                    <i data-feather="arrow-up" class="h-3 w-3 mr-1"></i>
+                    18.3%
+                </span>
+                <span class="text-gray-500 text-xs ml-2">vs mois précédent</span>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Chiffre d'affaires</p>
+                    <h3 class="text-2xl font-bold text-gray-800 mt-1">€195,420</h3>
+                </div>
+                <div class="bg-yellow-100 rounded-full p-3">
+                    <i data-feather="dollar-sign" class="h-6 w-6 text-yellow-500"></i>
+                </div>
+            </div>
+            <div class="flex items-center mt-4">
+                <span class="flex items-center text-green-500 text-sm">
+                    <i data-feather="arrow-up" class="h-3 w-3 mr-1"></i>
+                    9.7%
+                </span>
+                <span class="text-gray-500 text-xs ml-2">vs mois précédent</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- User Growth Chart -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-semibold text-gray-800">Croissance des utilisateurs</h3>
+                <div class="flex space-x-2">
+                    <button class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-medium">Mensuel</button>
+                    <button class="text-gray-500 px-3 py-1 rounded-full text-xs font-medium hover:bg-gray-100">Trimestriel</button>
+                    <button class="text-gray-500 px-3 py-1 rounded-full text-xs font-medium hover:bg-gray-100">Annuel</button>
+                </div>
+            </div>
+            <div class="h-72">
+                <canvas id="user-growth-chart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Revenue Chart -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-semibold text-gray-800">Revenus par type d'abonnement</h3>
+                <button class="text-gray-400 hover:text-gray-600">
+                    <i data-feather="more-vertical" class="h-5 w-5"></i>
+                </button>
+            </div>
+            <div class="h-72">
+                <canvas id="revenue-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Activity Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Activity by Module -->
+        <div class="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-semibold text-gray-800">Activité par module</h3>
+                <div class="relative">
+                    <select class="bg-white border border-gray-300 rounded-lg px-3 py-1 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs">
+                        <option>Les 7 derniers jours</option>
+                        <option>Les 30 derniers jours</option>
+                        <option>Cette année</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <i data-feather="chevron-down" class="h-3 w-3"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-3 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module</th>
+                            <th class="px-3 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateurs</th>
+                            <th class="px-3 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sessions</th>
+                            <th class="px-3 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Temps moyen</th>
+                            <th class="px-3 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Évolution</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="bg-blue-100 p-2 rounded-md">
+                                        <i data-feather="dollar-sign" class="h-4 w-4 text-blue-600"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">Finance</div>
+                                        <div class="text-xs text-gray-500">6 sous-modules</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">924</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">3,841</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">12m 45s</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">+24%</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="bg-purple-100 p-2 rounded-md">
+                                        <i data-feather="users" class="h-4 w-4 text-purple-600"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">Ressources Humaines</div>
+                                        <div class="text-xs text-gray-500">4 sous-modules</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">731</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">2,956</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">9m 12s</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">+17%</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="bg-green-100 p-2 rounded-md">
+                                        <i data-feather="bar-chart-2" class="h-4 w-4 text-green-600"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">Analyses</div>
+                                        <div class="text-xs text-gray-500">8 sous-modules</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">649</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">2,143</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">15m 36s</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">+31%</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="bg-red-100 p-2 rounded-md">
+                                        <i data-feather="clipboard" class="h-4 w-4 text-red-600"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">Rapports</div>
+                                        <div class="text-xs text-gray-500">3 sous-modules</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">412</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">1,587</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">7m 52s</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">+8%</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="bg-yellow-100 p-2 rounded-md">
+                                        <i data-feather="settings" class="h-4 w-4 text-yellow-600"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">Configuration</div>
+                                        <div class="text-xs text-gray-500">5 sous-modules</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">287</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">902</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center text-sm text-gray-700">5m 14s</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">-3%</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Recent Alerts -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-semibold text-gray-800">Alertes système récentes</h3>
+                <button class="text-blue-600 text-xs hover:underline">Voir toutes</button>
+            </div>
+            <div class="space-y-4">
+                <div class="border-l-4 border-red-500 pl-3 py-2">
+                    <div class="flex justify-between items-start">
+                        <p class="text-sm font-medium text-gray-800">Pic de charge serveur</p>
+                        <span class="text-xs text-gray-500">2h</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1">CPU à 94% pendant 15 minutes sur le serveur PROD-03</p>
+                </div>
+                <div class="border-l-4 border-yellow-500 pl-3 py-2">
+                    <div class="flex justify-between items-start">
+                        <p class="text-sm font-medium text-gray-800">API Rate Limit</p>
+                        <span class="text-xs text-gray-500">5h</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1">3 clients ont atteint leur limite d'appels API</p>
+                </div>
+                <div class="border-l-4 border-blue-500 pl-3 py-2">
+                    <div class="flex justify-between items-start">
+                        <p class="text-sm font-medium text-gray-800">Maintenance planifiée</p>
+                        <span class="text-xs text-gray-500">12h</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1">Base de données en maintenance ce soir à 23h00</p>
+                </div>
+                <div class="border-l-4 border-green-500 pl-3 py-2">
+                    <div class="flex justify-between items-start">
+                        <p class="text-sm font-medium text-gray-800">Mise à jour déployée</p>
+                        <span class="text-xs text-gray-500">1j</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1">Version 2.14.3 déployée avec succès</p>
+                </div>
+                <div class="border-l-4 border-purple-500 pl-3 py-2">
+                    <div class="flex justify-between items-start">
+                        <p class="text-sm font-medium text-gray-800">Nouvelle intégration</p>
+                        <span class="text-xs text-gray-500">2j</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1">API PaySafe connectée et opérationnelle</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health & Latest Clients -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- System Health -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-semibold text-gray-800">Santé du système</h3>
+                <button class="text-blue-600 text-xs hover:underline">Détails</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm text-gray-600">Serveurs Web (6/6)</span>
+                        <span class="text-sm font-medium text-green-600">99.98%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 99.98%"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm text-gray-600">Serveurs API (4/4)</span>
+                        <span class="text-sm font-medium text-green-600">100%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm text-gray-600">Base de données (3/3)</span>
+                        <span class="text-sm font-medium text-green-600">99.95%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 99.95%"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm text-gray-600">Cache Redis</span>
+                        <span class="text-sm font-medium text-yellow-600">93.72%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 93.72%"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm text-gray-600">Service de messagerie</span>
+                        <span class="text-sm font-medium text-green-600">99.90%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 99.9%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-100 mt-6 pt-4">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Temps de réponse moyen</span>
+                    <span class="font-medium text-gray-800">247ms</span>
+                </div>
+                <div class="flex justify-between text-sm mt-2">
+                    <span class="text-gray-600">Utilisation CPU</span>
+                    <span class="font-medium text-gray-800">32%</span>
+                </div>
+                <div class="flex justify-between text-sm mt-2">
+                    <span class="text-gray-600">Utilisation mémoire</span>
+                    <span class="font-medium text-gray-800">45%</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Latest Clients -->
+        <div class="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-semibold text-gray-800">Dernières entreprises inscrites</h3>
+                <button class="text-blue-600 text-xs hover:underline">Voir toutes</button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-3 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entreprise</th>
+                            <th class="px-3 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Forfait</th>
+                            <th class="px-3 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateurs</th>
+                            <th class="px-3 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-3 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 font-bold">NM</div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">Nexus Media</div>
+                                        <div class="text-xs text-gray-500">France</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Premium</div>
+                                <div class="text-xs text-gray-500">€349/mois</div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">12</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">15 mai 2025</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-bold">ES</div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">EcoSolutions SARL</div>
+                                        <div class="text-xs text-gray-500">Belgique</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Standard</div>
+                                <div class="text-xs text-gray-500">€199/mois</div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">7</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">14 mai 2025</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-bold">TI</div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">TechInnovate SAS</div>
+                                        <div class="text-xs text-gray-500">France</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Entreprise</div>
+                                <div class="text-xs text-gray-500">€499/mois</div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">23</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">12 mai 2025</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">En configuration</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center text-red-800 font-bold">MC</div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">MediaConnect AG</div>
+                                        <div class="text-xs text-gray-500">Suisse</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Standard</div>
+                                <div class="text-xs text-gray-500">€199/mois</div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">5</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">10 mai 2025</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Essai gratuit</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-800 font-bold">CP</div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">ConseilPlus</div>
+                                        <div class="text-xs text-gray-500">France</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">Basic</div>
+                                <div class="text-xs text-gray-500">€99/mois</div>
+                            </td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">3</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-700">9 mai 2025</td>
+                            <td class="px-3 py-4 whitespace-nowrap text-center">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+     <script>
+         // Initialize Feather Icons
+                document.addEventListener('DOMContentLoaded', function() {
+                    feather.replace();
+                    
+                    // User Growth Chart
+                    const userGrowthCtx = document.getElementById('user-growth-chart').getContext('2d');
+                    const userGrowthChart = new Chart(userGrowthCtx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                            datasets: [{
+                                label: 'Nouveaux utilisateurs',
+                                data: [120, 165, 210, 254, 290, 385, 430, 520, 595, 670, 750, 830],
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        display: true,
+                                        drawBorder: false
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false,
+                                        drawBorder: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Revenue Chart
+                    const revenueCtx = document.getElementById('revenue-chart').getContext('2d');
+                    const revenueChart = new Chart(revenueCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                            datasets: [
+                                {
+                                    label: 'Basic',
+                                    data: [4500, 5200, 5700, 6100, 6800, 7200, 7800, 8300, 8900, 9400, 10100, 10700],
+                                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                                    borderRadius: 4
+                                },
+                                {
+                                    label: 'Standard',
+                                    data: [8200, 9500, 10300, 11200, 12500, 13800, 15200, 16500, 17900, 19300, 20800, 22300],
+                                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                    borderRadius: 4
+                                },
+                                {
+                                    label: 'Premium',
+                                    data: [6100, 7300, 8200, 9400, 10500, 12000, 13700, 15400, 16900, 18500, 20100, 22000],
+                                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                                    borderRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    align: 'end',
+                                    labels: {
+                                        boxWidth: 12,
+                                        usePointStyle: true,
+                                        pointStyle: 'circle'
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    stacked: true,
+                                    grid: {
+                                        display: true,
+                                        drawBorder: false
+                                    }
+                                },
+                                x: {
+                                    stacked: true,
+                                    grid: {
+                                        display: false,
+                                        drawBorder: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+                    // Initialize Feather Icons
+                    feather.replace();
+                    
+                    // Mobile Menu Toggle
+                    document.getElementById('sidebar-toggle').addEventListener('click', function() {
+                        document.getElementById('sidebar').classList.add('active');
+                        document.getElementById('overlay').classList.remove('hidden');
+                        document.getElementById('overlay').classList.add('active');
+                    });
+                    
+                    document.getElementById('sidebar-close').addEventListener('click', function() {
+                        document.getElementById('sidebar').classList.remove('active');
+                        document.getElementById('overlay').classList.remove('active');
+                        document.getElementById('overlay').classList.add('hidden');
+                    });
+                    
+                    document.getElementById('overlay').addEventListener('click', function() {
+                        document.getElementById('sidebar').classList.remove('active');
+                        document.getElementById('overlay').classList.remove('active');
+                        document.getElementById('overlay').classList.add('hidden');
+                    });
+                    
+                    // Dropdowns
+                    document.getElementById('notif-toggle').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        document.getElementById('notif-menu').classList.toggle('active');
+                        document.getElementById('profile-menu').classList.remove('active');
+                    });
+                    
+                    document.getElementById('profile-toggle').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        document.getElementById('profile-menu').classList.toggle('active');
+                        document.getElementById('notif-menu').classList.remove('active');
+                    });
+                    
+                    document.addEventListener('click', function() {
+                        document.getElementById('notif-menu').classList.remove('active');
+                        document.getElementById('profile-menu').classList.remove('active');
+                    });
+                    
+                    // Charts
+                    // Expenses Chart
+                    const expensesChart = new Chart(
+                        document.getElementById('expenses-chart').getContext('2d'),
+                        {
+                            type: 'line',
+                            data: {
+                                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                                datasets: [
+                                    {
+                                        label: 'Dépenses',
+                                        data: [30500, 32400, 28900, 35200, 45320, 0, 0, 0, 0, 0, 0, 0],
+                                        borderColor: '#f87171',
+                                        backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                                        fill: true,
+                                        tension: 0.4
+                                    },
+                                    {
+                                        label: 'Revenus',
+                                        data: [50200, 48300, 42100, 58400, 62145, 0, 0, 0, 0, 0, 0, 0],
+                                        borderColor: '#34d399',
+                                        backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                                        fill: true,
+                                        tension: 0.4
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            boxWidth: 10,
+                                            usePointStyle: true
+                                        }
+                                    },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        grid: {
+                                            display: false
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            callback: function(value) {
+                                                return value / 1000 + ' k€';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    );
+                    
+                    // Category Pie Chart
+                    const categoryChart = new Chart(
+                        document.getElementById('category-chart').getContext('2d'),
+                        {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['RH', 'Marketing', 'Développement', 'Locaux', 'Équipement'],
+                                datasets: [
+                                    {
+                                        data: [32540, 8500, 15200, 13500, 5245],
+                                        backgroundColor: [
+                                            'rgba(168, 85, 247, 0.8)',
+                                            'rgba(59, 130, 246, 0.8)',
+                                            'rgba(16, 185, 129, 0.8)',
+                                            'rgba(245, 158, 11, 0.8)',
+                                            'rgba(99, 102, 241, 0.8)'
+                                        ]
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            boxWidth: 12,
+                                            usePointStyle: true
+                                        }
+                                    }
+                                },
+                                cutout: '70%'
+                            }
+                        }
+                    );
+                    
+                
+                
+                
+                // Script pour la fonctionnalité des sous-menus 
+                document.addEventListener('DOMContentLoaded', function() {
+                // Initialiser Feather Icons
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
+                }
+                
+                // Gestion des sous-menus
+                const submenus = document.querySelectorAll('.submenu-container');
+                
+                submenus.forEach(container => {
+                    const toggle = container.querySelector('a');
+                    const submenu = container.querySelector('.submenu');
+                    
+                    // Cacher tous les sous-menus au départ
+                    submenu.style.display = 'none';
+                    
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // Toggle du sous-menu
+                        if (submenu.style.display === 'none') {
+                            submenu.style.display = 'block';
+                            // Changer l'icône pour indiquer que le menu est ouvert
+                            const icon = toggle.querySelector('[data-feather="chevron-down"]');
+                            if (icon) {
+                                icon.setAttribute('data-feather', 'chevron-up');
+                                if (typeof feather !== 'undefined') {
+                                    feather.replace();
+                                }
+                            }
+                        } else {
+                            submenu.style.display = 'none';
+                            // Changer l'icône pour indiquer que le menu est fermé
+                            const icon = toggle.querySelector('[data-feather="chevron-up"]');
+                            if (icon) {
+                                icon.setAttribute('data-feather', 'chevron-down');
+                                if (typeof feather !== 'undefined') {
+                                    feather.replace();
+                                }
+                            }
+                        }
+                    });
+                });
+                
+
+                
+            });
+
+
+    </script>
+{% endblock %}

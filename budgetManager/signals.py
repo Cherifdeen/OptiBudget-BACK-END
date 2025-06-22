@@ -29,6 +29,37 @@ def create_notification(user, message, type_notif="INFO"):
 # SIGNAUX POUR BUDGET
 # ============================================================================
 
+def _generate_budget_advice(budget_instance):
+    """Génère des conseils personnalisés pour le budget"""
+    try:
+        # Calculer le pourcentage utilisé
+        total_depenses = budget_instance.categorie_depenses.aggregate(
+            total=models.Sum('montant_utilise')
+        )['total'] or 0
+        
+        usage_percentage = (total_depenses / budget_instance.montant) * 100 if budget_instance.montant > 0 else 0
+        
+        # Générer des conseils basés sur l'utilisation
+        if usage_percentage >= 90:
+            message = f"🚨 Attention! Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Réduisez vos dépenses immédiatement."
+            notification_type = "WARNING"
+        elif usage_percentage >= 75:
+            message = f"⚠️ Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Surveillez vos dépenses."
+            notification_type = "INFO"
+        elif usage_percentage >= 50:
+            message = f"💡 Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Vous êtes sur la bonne voie!"
+            notification_type = "SUCCESS"
+        else:
+            # Pas de conseil nécessaire pour les budgets peu utilisés
+            return
+            
+        create_notification(budget_instance.user, message, notification_type)
+        
+    except Exception as e:
+        # Log l'erreur mais ne pas faire échouer le signal
+        print(f"Erreur lors de la génération des conseils budget: {e}")
+
+
 @receiver(post_save, sender=Budget)
 def budget_post_save_handler(sender, instance, created, **kwargs):
     """Gestionnaire unifié pour les événements post_save du Budget"""
@@ -52,7 +83,7 @@ def _handle_budget_update(instance):
         if hasattr(instance, '_updating_from_serializer'):
             # Cette mise à jour vient du serializer (reset complet)
             message = f"🔄 Budget '{instance.nom}' réinitialisé: {instance.montant:,.2f} €"
-            create_notification(instance.user, message, "INFO")
+            create_notification(instance.user, message, "LOG")
             return
             
         # Pour les autres mises à jour, on peut comparer avec la DB
@@ -79,7 +110,7 @@ def _handle_budget_update(instance):
                 message = f"📅 Date d'échéance du budget '{instance.nom}' mise à jour: {instance.date_fin}"
             else:
                 message = f"📅 Date d'échéance du budget '{instance.nom}' supprimée"
-            create_notification(instance.user, message, "INFO")
+            create_notification(instance.user, message, "LOG")
             
     except Budget.DoesNotExist:
         # Cas où l'instance n'existe pas encore en DB
@@ -111,52 +142,19 @@ def _check_budget_expiry(instance):
     
     if days_remaining == 0:
         message = f"🚨 Budget '{instance.nom}' expire AUJOURD'HUI!"
-        create_notification(instance.user, message, "ERROR")
+        create_notification(instance.user, message, "LOG")
     elif days_remaining == 1:
         message = f"⏰ Budget '{instance.nom}' expire DEMAIN!"
-        create_notification(instance.user, message, "WARNING")
+        create_notification(instance.user, message, "LOG")
     elif 2 <= days_remaining <= 7:
         message = f"⏰ Budget '{instance.nom}' expire dans {days_remaining} jours"
-        create_notification(instance.user, message, "WARNING")
+        create_notification(instance.user, message, "LOG")
     elif days_remaining < 0:
         message = f"🚨 Budget '{instance.nom}' a expiré il y a {abs(days_remaining)} jour(s)!"
-        create_notification(instance.user, message, "ERROR")
+        create_notification(instance.user, message, "LOG")
 
 
-def _generate_budget_advice(instance):
-    """Générer des conseils automatiques pour le budget"""
-    if instance.montant_initial <= 0:
-        return
-        
-    usage_percentage = ((instance.montant_initial - instance.montant) / instance.montant_initial) * 100
-    
-    # Conseils basés sur l'utilisation
-    if usage_percentage >= 90:
-        conseil_message = f"Budget '{instance.nom}' utilisé à {usage_percentage:.1f}%. Planifiez un nouveau budget ou des revenus supplémentaires."
-        _create_auto_conseil(instance, "Budget Critique", conseil_message)
-    elif usage_percentage >= 75:
-        conseil_message = f"Budget '{instance.nom}' utilisé à {usage_percentage:.1f}%. Révisez vos dépenses non essentielles."
-        _create_auto_conseil(instance, "Gestion Budget", conseil_message)
 
-
-def _create_auto_conseil(instance, titre, message):
-    """Créer un conseil automatique sans doublon"""
-    # Vérifier s'il existe déjà un conseil similaire récent
-    existing = Conseil.objects.filter(
-        user=instance.user,
-        id_budget=instance,
-        nom__icontains=titre,
-        created_at__gte=timezone.now() - timedelta(days=1)
-    ).exists()
-    
-    if not existing:
-        Conseil.objects.create(
-            user=instance.user,
-            id_budget=instance,
-            nom=f"Conseil Auto - {titre}",
-            message=message
-        )
-        create_notification(instance.user, f"💡 Nouveau conseil pour '{instance.nom}'", "INFO")
 
 
 @receiver(post_delete, sender=Budget)
@@ -175,7 +173,7 @@ def categorie_depense_post_save_handler(sender, instance, created, **kwargs):
     """Gestionnaire pour les catégories de dépense"""
     if created:
         message = f"📂 Catégorie '{instance.nom}' créée: {instance.montant:,.2f} € (Budget: {instance.id_budget.nom})"
-        create_notification(instance.user, message, "SUCCESS")
+        create_notification(instance.user, message, "LOG")
     else:
         # Gestion des mises à jour de catégorie
         _handle_category_update(instance)
@@ -194,10 +192,10 @@ def _handle_category_update(instance):
             difference = instance.montant_initial - old_instance.montant_initial
             if difference > 0:
                 message = f"📈 Catégorie '{instance.nom}' augmentée: +{difference:,.2f} €"
-                create_notification(instance.user, message, "SUCCESS")
+                create_notification(instance.user, message, "LOG")
             else:
                 message = f"📉 Catégorie '{instance.nom}' réduite: {difference:,.2f} €"
-                create_notification(instance.user, message, "WARNING")
+                create_notification(instance.user, message, "LOG")
         
         # Vérifier si le nom a changé
         if old_instance.nom != instance.nom:
@@ -216,10 +214,10 @@ def _check_category_low_funds(instance):
         
         if remaining_percentage <= 5:
             message = f"🚨 Catégorie '{instance.nom}' critique: {instance.montant:,.2f} €"
-            create_notification(instance.user, message, "ERROR")
+            create_notification(instance.user, message, "LOG")
         elif remaining_percentage <= 15:
             message = f"⚠️ Catégorie '{instance.nom}' faible: {instance.montant:,.2f} €"
-            create_notification(instance.user, message, "WARNING")
+            create_notification(instance.user, message, "LOG")
 
 
 @receiver(post_delete, sender=CategorieDepense)
@@ -242,7 +240,7 @@ def depense_post_save_handler(sender, instance, created, **kwargs):
         else:
             message = f"💸 Dépense '{instance.nom}': {instance.montant:,.2f} € (Budget: {instance.id_budget.nom})"
         
-        create_notification(instance.user, message, "INFO")
+        create_notification(instance.user, message, "LOG")
         
         # Vérifier l'impact sur la catégorie
         if instance.id_cat_depense:
@@ -262,22 +260,22 @@ def _handle_depense_update(instance):
             difference = instance.montant - old_instance.montant
             if difference > 0:
                 message = f"📈 Dépense '{instance.nom}' augmentée: +{difference:,.2f} €"
-                create_notification(instance.user, message, "WARNING")
+                create_notification(instance.user, message, "LOG")
             else:
                 message = f"📉 Dépense '{instance.nom}' réduite: {difference:,.2f} €"
-                create_notification(instance.user, message, "SUCCESS")
+                create_notification(instance.user, message, "LOG")
         
         # Vérifier changement de nom
         if old_instance.nom != instance.nom:
             message = f"✏️ Dépense renommée: '{old_instance.nom}' → '{instance.nom}'"
-            create_notification(instance.user, message, "INFO")
+            create_notification(instance.user, message, "LOG")
         
         # Vérifier changement de catégorie
         if old_instance.id_cat_depense != instance.id_cat_depense:
             old_cat = old_instance.id_cat_depense.nom if old_instance.id_cat_depense else "Aucune"
             new_cat = instance.id_cat_depense.nom if instance.id_cat_depense else "Aucune"
             message = f"📁 Dépense '{instance.nom}' déplacée: {old_cat} → {new_cat}"
-            create_notification(instance.user, message, "INFO")
+            create_notification(instance.user, message, "LOG")
             
     except Depense.DoesNotExist:
         pass
@@ -299,7 +297,7 @@ def depense_pre_delete_handler(sender, instance, **kwargs):
 def depense_post_delete_handler(sender, instance, **kwargs):
     """Gestionnaire après suppression de dépense"""
     message = f"🗑️ Dépense '{instance.nom}' annulée: +{instance.montant:,.2f} € restaurés"
-    create_notification(instance.user, message, "SUCCESS")
+    create_notification(instance.user, message, "LOG")
 
 
 # ============================================================================
@@ -311,7 +309,7 @@ def entree_post_save_handler(sender, instance, created, **kwargs):
     """Gestionnaire pour les entrées"""
     if created:
         message = f"💰 Entrée '{instance.nom}': +{instance.montant:,.2f} € (Budget: {instance.id_budget.nom})"
-        create_notification(instance.user, message, "SUCCESS")
+        create_notification(instance.user, message, "LOG")
         
         # Ajouter le montant au budget
         instance.id_budget.montant += instance.montant
@@ -336,15 +334,15 @@ def _handle_entree_update(instance):
             
             if difference > 0:
                 message = f"📈 Entrée '{instance.nom}' augmentée: +{difference:,.2f} €"
-                create_notification(instance.user, message, "SUCCESS")
+                create_notification(instance.user, message, "LOG")
             else:
                 message = f"📉 Entrée '{instance.nom}' réduite: {difference:,.2f} €"
-                create_notification(instance.user, message, "WARNING")
+                create_notification(instance.user, message, "LOG")
         
         # Vérifier changement de nom
         if old_instance.nom != instance.nom:
             message = f"✏️ Entrée renommée: '{old_instance.nom}' → '{instance.nom}'"
-            create_notification(instance.user, message, "INFO")
+            create_notification(instance.user, message, "LOG")
             
     except Entree.DoesNotExist:
         pass
@@ -373,7 +371,7 @@ def employe_post_save_handler(sender, instance, created, **kwargs):
     """Gestionnaire pour les employés"""
     if created:
         message = f"👤 Employé ajouté: {instance.prenom} {instance.nom} - {instance.poste}"
-        create_notification(instance.user, message, "SUCCESS")
+        create_notification(instance.user, message, "LOG")
     else:
         # Notification pour changement de statut
         if hasattr(instance, '_state') and instance._state.adding is False:
@@ -411,7 +409,7 @@ def check_employee_status_change(instance):
             
         if changes:
             message = f"✏️ {instance.prenom} {instance.nom} - Mis à jour: {', '.join(changes)}"
-            create_notification(instance.user, message, "INFO")
+            create_notification(instance.user, message, "LOG")
             
     except Employe.DoesNotExist:
         pass
@@ -432,7 +430,7 @@ def paiement_employe_post_save_handler(sender, instance, created, **kwargs):
     if created:
         employe_nom = f"{instance.id_employe.prenom} {instance.id_employe.nom}"
         message = f"💵 Salaire payé: {instance.montant:,.2f} € à {employe_nom}"
-        create_notification(instance.user, message, "SUCCESS")
+        create_notification(instance.user, message, "LOG")
         
         # Notification budget si fonds faibles après paiement
         if instance.id_budget.montant <= instance.id_budget.montant_initial * 0.2:
@@ -445,7 +443,7 @@ def paiement_employe_deleted_handler(sender, instance, **kwargs):
     """Gestionnaire pour suppression de paiement"""
     employe_nom = f"{instance.id_employe.prenom} {instance.id_employe.nom}"
     message = f"🗑️ Paiement annulé: {instance.montant:,.2f} € pour {employe_nom}"
-    create_notification(instance.user, message, "INFO")
+    create_notification(instance.user, message, "LOG")
 
 
 # ============================================================================
@@ -457,10 +455,10 @@ def montant_salaire_post_save_handler(sender, instance, created, **kwargs):
     """Gestionnaire pour configuration des salaires"""
     if created:
         message = "⚙️ Configuration des salaires créée"
-        create_notification(instance.user, message, "SUCCESS")
+        create_notification(instance.user, message, "LOG")
     else:
         message = "⚙️ Configuration des salaires mise à jour"
-        create_notification(instance.user, message, "INFO")
+        create_notification(instance.user, message, "LOG")
 
 
 # ============================================================================
@@ -473,7 +471,7 @@ def conseil_post_save_handler(sender, instance, created, **kwargs):
     if created and not instance.nom.startswith("Conseil Auto"):
         # Seulement pour les conseils manuels
         message = f"💡 Nouveau conseil ajouté: {instance.nom}"
-        create_notification(instance.user, message, "INFO")
+        create_notification(instance.user, message, "LOG")
 
 
 # ============================================================================

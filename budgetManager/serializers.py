@@ -1,14 +1,12 @@
 from rest_framework import serializers
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import timedelta
 from .models import (
     Budget, CategorieDepense, Depense, Entree, Employe, 
     Notification, Conseil, PaiementEmploye, MontantSalaire
 )
-from rest_framework import  status
 from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.db import transaction
+
 
 class BudgetSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,14 +55,14 @@ class BudgetSerializer(serializers.ModelSerializer):
         if montant is not None:
             validated_data['montant_initial'] = montant
         else:
-            # Handle the case where montant is missing
+            
             raise serializers.ValidationError("Le champ 'montant' est requis.")
     
         return super().create(validated_data)
     def update(self, instance, validated_data):
         """Mettre à jour un budget et rompre tous les liens"""
         # Importer les modèles nécessaires
-        from .models import CategorieDepense, Depense, Entree, PaiementEmploye, Conseil
+        
         
         # Supprimer toutes les catégories de dépenses liées et leurs dépenses
         categories_liees = CategorieDepense.objects.filter(id_budget=instance)

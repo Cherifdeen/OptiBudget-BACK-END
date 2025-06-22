@@ -1,5 +1,5 @@
 from django.db import models
-from django.conf import settings  # Ajout de l'import pour settings
+from django.conf import settings  
 import uuid
 from django.core.exceptions import ValidationError
 
@@ -15,7 +15,7 @@ class Budget(models.Model):
     description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
     actif = models.BooleanField(default=True)
     D = [
         ('D', 'Durée determiner'),
@@ -34,7 +34,7 @@ class CategorieDepense(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     id_budget = models.ForeignKey(Budget, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
 
 
 class Depense(models.Model):
@@ -50,8 +50,8 @@ class Depense(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     id_budget = models.ForeignKey(Budget, on_delete=models.CASCADE)
-    id_cat_depense = models.ForeignKey(CategorieDepense, null=True, blank=True, on_delete=models.SET_NULL)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    id_cat_depense = models.ForeignKey(CategorieDepense, null=True, blank=True, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
 
 
 class Entree(models.Model):
@@ -62,12 +62,7 @@ class Entree(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     id_budget = models.ForeignKey(Budget, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
-    def save(self, *args, **kwargs):
-        # Vérifier que l'utilisateur associé au budget a un compte entreprise
-        if self.id_budget.user.compte != 'entreprise':
-            raise ValidationError("Seuls les comptes entreprise peuvent créer des entrées")
-        super().save(*args, **kwargs)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
 
 
 class Employe(models.Model):
@@ -87,13 +82,13 @@ class Employe(models.Model):
         ('CON', 'Consultant/Freelance'),
         ('STA', 'Stagiaire/Alternant'),
         ('INT', 'Intérimaire'),
-        ('AUT', 'Autre'),  # Correction de 'Antre' -> 'Autre'
+        ('AUT', 'Autre'),  
     ]
     type_employe = models.CharField(max_length=3, choices=TYPE_EMPLOYE_CHOICES, default='AUT')
     poste = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
     prise_service = models.DateTimeField(null=True, blank=True)
     img_profil = models.ImageField(
         upload_to='profiles/%Y/%m/',
@@ -105,10 +100,10 @@ class Employe(models.Model):
     ACT = [
         ('ES', 'En service'),
         ('EC', 'En congé'),
-        ('ER', 'Retraité'),  # Correction de 'Retaité' -> 'Retraité'
+        ('ER', 'Retraité'),  
         ('LC', 'Licencié'),
         ('HS', 'Hors service'),
-        ('DM', 'Démissionné'),  # Correction de 'Demissionné' -> 'Démissionné'
+        ('DM', 'Démissionné'),  
     ]
     actif = models.CharField(max_length=3, choices=ACT, default='ES')
 
@@ -127,7 +122,7 @@ class Notification(models.Model):
     type_notification=models.TextField(null=True,blank=True,default='INFO',choices=TYPES)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.CASCADE)  # Correction ici
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.CASCADE)  
     viewed = models.BooleanField(default=False)
 
 
@@ -138,7 +133,7 @@ class Conseil(models.Model):
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
     viewed = models.BooleanField(default=False)
 
 
@@ -150,13 +145,13 @@ class PaiementEmploye(models.Model):
     type_paiement = models.CharField(max_length=50, choices=[('SALAIRE', 'Salaire')])
     description = models.TextField(blank=True, null=True)
     id_budget = models.ForeignKey(Budget, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
 class MontantSalaire(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Correction ici
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  
     salaire_direction = models.FloatField(default=0.0)
     bonus_direction = models.FloatField(default=0.0)
     indemnite_direction = models.FloatField(default=0.0)

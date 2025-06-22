@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -17,11 +17,9 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from .models import Budget, CategorieDepense, Depense, Entree, PaiementEmploye
 from .serializers import BudgetSerializer, CategorieDepenseSerializer, DepenseSerializer, EntreeSerializer
-import calendar
 from django.db import transaction
 from decimal import Decimal
 import logging
-
 from .models import (
     Budget, CategorieDepense, Depense, Entree, Employe, 
     Notification, Conseil, PaiementEmploye, MontantSalaire
@@ -31,12 +29,15 @@ from .serializers import (
     EntreeSerializer, NotificationSerializer, ConseilSerializer,
     EmployeSerializer, PaiementEmployeSerializer, MontantSalaireSerializer
 )
+from .customPagination import CustomCursorPagination
+
 
 
 class BudgetViewSet(viewsets.ModelViewSet):
-    """ViewSet pour la gestion des budgets"""
+    """ViewSet pour la gestion des budgets avec les pagination """
     serializer_class = BudgetSerializer
-    ## permission_classes = [IsAuthenticated,TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les budgets de l'utilisateur connecté"""
@@ -94,6 +95,7 @@ class CategorieDepenseViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des catégories de dépenses"""
     serializer_class = CategorieDepenseSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les catégories de l'utilisateur connecté"""
@@ -134,12 +136,166 @@ class CategorieDepenseViewSet(viewsets.ModelViewSet):
         serializer = DepenseSerializer(depenses, many=True)
         return Response(serializer.data)
     
+    @action(detail=True, methods=['get'])
+    def stats(self, request, pk=None):
+        """Récupérer les statistiques d'une catégorie"""
+        categorie = self.get_object()
+        
+        # Paramètres de période (optionnels)
+        periode = request.query_params.get('periode', 'all')  # all, month, week, year
+        
+        # Base queryset des dépenses
+        depenses_qs = Depense.objects.filter(
+            id_cat_depense=categorie, 
+            user=request.user
+        )
+        
+        # Filtrer par période si spécifié
+        now = timezone.now()
+        if periode == 'week':
+            start_date = now - timedelta(days=7)
+            depenses_qs = depenses_qs.filter(date_depense__gte=start_date)
+        elif periode == 'month':
+            start_date = now - timedelta(days=30)
+            depenses_qs = depenses_qs.filter(date_depense__gte=start_date)
+        elif periode == 'year':
+            start_date = now - timedelta(days=365)
+            depenses_qs = depenses_qs.filter(date_depense__gte=start_date)
+        
+        # Calculs statistiques
+        stats_data = depenses_qs.aggregate(
+            total_depense=Sum('montant') or 0,
+            nombre_depenses=Count('id'),
+            depense_moyenne=Avg('montant') or 0,
+        )
+        
+        # Montant restant dans la catégorie
+        montant_restant = categorie.montant_initial - stats_data['total_depense']
+        
+        # Pourcentage utilisé
+        pourcentage_utilise = 0
+        if categorie.montant_initial > 0:
+            pourcentage_utilise = (stats_data['total_depense'] / categorie.montant_initial) * 100
+        
+        # Dépenses par jour (pour les graphiques)
+        depenses_par_jour = depenses_qs.extra(
+            select={'jour': 'date(date_depense)'}
+        ).values('jour').annotate(
+            total_jour=Sum('montant'),
+            nombre_depenses_jour=Count('id')
+        ).order_by('jour')
+        
+        # Top 5 des plus grosses dépenses
+        top_depenses = depenses_qs.order_by('-montant')[:5].values(
+            'id', 'libelle', 'montant', 'date_depense'
+        )
+        
+        response_data = {
+            'categorie_info': {
+                'id': categorie.id,
+                'nom': categorie.nom,
+                'montant_initial': float(categorie.montant_initial),
+                'couleur': categorie.couleur,
+            },
+            'periode': periode,
+            'resume': {
+                'total_depense': float(stats_data['total_depense']),
+                'montant_restant': float(montant_restant),
+                'nombre_depenses': stats_data['nombre_depenses'],
+                'depense_moyenne': float(stats_data['depense_moyenne']),
+                'pourcentage_utilise': round(pourcentage_utilise, 2),
+            },
+            'depenses_par_jour': list(depenses_par_jour),
+            'top_depenses': list(top_depenses),
+            'statut': {
+                'est_depassee': montant_restant < 0,
+                'est_proche_limite': pourcentage_utilise > 80,
+            }
+        }
+        
+        return Response(response_data)
+    
+    @action(detail=False, methods=['get'])
+    def stats_globales(self, request):
+        """Statistiques globales pour toutes les catégories de l'utilisateur"""
+        queryset = self.get_queryset()
+        
+        # Paramètres de période
+        periode = request.query_params.get('periode', 'month')
+        
+        now = timezone.now()
+        start_date = now
+        if periode == 'week':
+            start_date = now - timedelta(days=7)
+        elif periode == 'month':
+            start_date = now - timedelta(days=30)
+        elif periode == 'year':
+            start_date = now - timedelta(days=365)
+        
+        stats_par_categorie = []
+        total_budget = 0
+        total_depense = 0
+        
+        for categorie in queryset:
+            # Dépenses de la catégorie pour la période
+            depenses_qs = Depense.objects.filter(
+                id_cat_depense=categorie,
+                user=request.user,
+                date_depense__gte=start_date
+            )
+            
+            categorie_stats = depenses_qs.aggregate(
+                total=Sum('montant') or 0,
+                count=Count('id')
+            )
+            
+            montant_restant = categorie.montant_initial - categorie_stats['total']
+            pourcentage = 0
+            if categorie.montant_initial > 0:
+                pourcentage = (categorie_stats['total'] / categorie.montant_initial) * 100
+            
+            stats_par_categorie.append({
+                'id': categorie.id,
+                'nom': categorie.nom,
+                'couleur': categorie.couleur,
+                'montant_initial': float(categorie.montant_initial),
+                'total_depense': float(categorie_stats['total']),
+                'montant_restant': float(montant_restant),
+                'nombre_depenses': categorie_stats['count'],
+                'pourcentage_utilise': round(pourcentage, 2),
+                'est_depassee': montant_restant < 0,
+            })
+            
+            total_budget += categorie.montant_initial
+            total_depense += categorie_stats['total']
+        
+        # Trier par pourcentage utilisé (décroissant)
+        stats_par_categorie.sort(key=lambda x: x['pourcentage_utilise'], reverse=True)
+        
+        response_data = {
+            'periode': periode,
+            'resume_global': {
+                'total_budget': float(total_budget),
+                'total_depense': float(total_depense),
+                'total_restant': float(total_budget - total_depense),
+                'nombre_categories': len(stats_par_categorie),
+                'pourcentage_global': round((total_depense / total_budget * 100), 2) if total_budget > 0 else 0,
+            },
+            'categories': stats_par_categorie,
+            'alertes': {
+                'categories_depassees': [c for c in stats_par_categorie if c['est_depassee']],
+                'categories_proches_limite': [c for c in stats_par_categorie if c['pourcentage_utilise'] > 80 and not c['est_depassee']],
+            }
+        }
+        
+        return Response(response_data)  
 
 
 class DepenseViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des dépenses"""
     serializer_class = DepenseSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les dépenses de l'utilisateur connecté"""
@@ -179,6 +335,7 @@ class EntreeViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des entrées"""
     serializer_class = EntreeSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les entrées de l'utilisateur connecté"""
@@ -216,7 +373,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des notifications"""
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
-    
+    pagination_class = CustomCursorPagination
+
     def get_queryset(self):
         """Retourner seulement les notifications de l'utilisateur connecté"""
         return Notification.objects.filter(user=self.request.user).filter(~Q(type_notification='LOG')).order_by('-created_at')
@@ -250,6 +408,7 @@ class ConseilViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des conseils"""
     serializer_class = ConseilSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les conseils de l'utilisateur connecté"""
@@ -271,6 +430,7 @@ class EmployeViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des employés (comptes entreprise uniquement)"""
     serializer_class = EmployeSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les employés de l'utilisateur connecté"""
@@ -347,6 +507,7 @@ class PaiementEmployeViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des paiements d'employés"""
     serializer_class = PaiementEmployeSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les paiements de l'utilisateur connecté"""
@@ -725,6 +886,7 @@ class MontantSalaireViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des montants de salaire"""
     serializer_class = MontantSalaireSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement la configuration de l'utilisateur connecté"""

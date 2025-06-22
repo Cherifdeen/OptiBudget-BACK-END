@@ -20,8 +20,7 @@ urlpatterns = [
     
     # Réinitialisation de mot de passe
     path('auth/password-reset/', views.password_reset_request, name='password-reset-request'),
-    path('auth/password-reset-confirm/<str:uidb64>/<str:token>/', 
-         views.password_reset_confirm, name='password-reset-confirm'),
+    path('auth/password-reset-confirm/<str:uidb64>/<str:token>/',views.password_reset_confirm, name='password-reset-confirm'),
     path('verify-password/',views.PasswordVerificationView.as_view(), name='verify-password'),
     
     # Vérification de disponibilité
