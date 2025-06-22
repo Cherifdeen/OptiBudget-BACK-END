@@ -240,81 +240,296 @@ def generer_statistiques_budget(budget, type_periode):
 
 def generer_conseil_ia(budget, stats, type_periode):
     """
-    Génère un conseil personnalisé avec l'API Gemini
+    Génère un conseil personnalisé avec l'API Gemini selon le type de compte
     """
     try:
-        # Construire le prompt
-        if type_periode == 'hebdomadaire':
-            prompt = f"""
-            En tant qu'expert en gestion financière, analysez les statistiques hebdomadaires suivantes et fournissez des conseils personnalisés :
-
-            **BUDGET: {stats['budget_nom']}**
-            - Type de compte: {stats['compte_type']}
-            - Devise: {stats['devise']}
-            - Montant initial: {stats['montant_initial']}
-            - Dépenses cette semaine: {stats['total_depenses']}
-            - Entrées cette semaine: {stats['total_entrees']}
-            - Solde actuel: {stats['solde_actuel']}
-            - Taux d'utilisation: {stats['taux_utilisation']}%
-
-            **DÉPENSES PAR CATÉGORIE:**
-            """
-            
-            for cat in stats['categories']:
-                prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
-            
-            prompt += f"""
-
-            **ANALYSE DEMANDÉE:**
-            1. Évaluez la santé financière de ce budget
-            2. Identifiez les catégories problématiques
-            3. Proposez 3-4 actions concrètes d'amélioration
-            4. Donnez des conseils pour la semaine prochaine
-            5. Alertez sur les risques potentiels
-
-            Réponse en français, format structuré avec des sections claires.
-            """
+        compte_type = stats['compte_type']
         
-        else:  # final
-            prompt = f"""
-            En tant qu'expert en gestion financière, analysez le bilan final de ce budget et fournissez des recommandations :
-
-            **BILAN FINAL - BUDGET: {stats['budget_nom']}**
-            - Type de compte: {stats['compte_type']}
-            - Période: du {stats['date_debut']} au {stats['date_fin']}
-            - Montant initial: {stats['montant_initial']}
-            - Total dépenses: {stats['total_depenses']}
-            - Total entrées: {stats['total_entrees']}
-            - Solde final: {stats['solde_actuel']}
-            - Taux d'utilisation: {stats['taux_utilisation']}%
-
-            **PERFORMANCE PAR CATÉGORIE:**
-            """
-            
-            for cat in stats['categories']:
-                prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
-            
-            prompt += f"""
-
-            **ANALYSE DEMANDÉE:**
-            1. Bilan global de la gestion de ce budget
-            2. Points forts et points faibles identifiés
-            3. Leçons apprises et recommandations
-            4. Suggestions pour les futurs budgets
-            5. Stratégies d'amélioration à long terme
-
-            Réponse en français, format structuré avec des sections claires.
-            """
-        
-        # Appel à l'API Gemini
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(prompt)
-        
-        return response.text
+        if compte_type == 'particulier':
+            return _generer_conseil_particulier(budget, stats, type_periode)
+        elif compte_type == 'entreprise':
+            return _generer_conseil_entreprise(budget, stats, type_periode)
+        else:
+            return _generer_conseil_generique(budget, stats, type_periode)
         
     except Exception as e:
         logger.error(f"Erreur lors de la génération du conseil IA: {str(e)}")
         return f"Erreur lors de la génération du conseil automatique. Veuillez consulter vos statistiques manuellement."
+
+
+def _generer_conseil_particulier(budget, stats, type_periode):
+    """
+    Génère des conseils spécifiques pour les comptes particuliers
+    """
+    if type_periode == 'hebdomadaire':
+        prompt = f"""
+        En tant qu'expert en gestion financière personnelle, analysez les statistiques hebdomadaires suivantes et fournissez des conseils adaptés à un particulier :
+
+        **BUDGET PERSONNEL: {stats['budget_nom']}**
+        - Devise: {stats['devise']}
+        - Montant initial: {stats['montant_initial']}
+        - Dépenses cette semaine: {stats['total_depenses']}
+        - Solde actuel: {stats['solde_actuel']}
+        - Taux d'utilisation: {stats['taux_utilisation']}%
+
+        **DÉPENSES PAR CATÉGORIE:**
+        """
+        
+        for cat in stats['categories']:
+            prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
+        
+        prompt += f"""
+
+        **CONSEILS DEMANDÉS (Format structuré):**
+
+        📊 **ANALYSE DE LA SEMAINE**
+        - Évaluez votre gestion budgétaire cette semaine
+        - Identifiez vos points forts et vos difficultés
+
+        💡 **CONSEILS PRATIQUES**
+        - 3-4 actions concrètes pour améliorer votre gestion
+        - Astuces pour réduire les dépenses non essentielles
+        - Conseils pour optimiser vos achats quotidiens
+
+        ⚠️ **ALERTES ET RISQUES**
+        - Catégories qui nécessitent votre attention
+        - Risques de dépassement de budget
+        - Conseils pour éviter les achats impulsifs
+
+        🎯 **OBJECTIFS POUR LA SEMAINE PROCHAINE**
+        - Objectifs réalistes à atteindre
+        - Stratégies pour mieux gérer vos dépenses
+        - Conseils pour maintenir un bon équilibre
+
+        Réponse en français, format structuré avec des emojis et des sections claires.
+        """
+    
+    else:  # final
+        prompt = f"""
+        En tant qu'expert en gestion financière personnelle, analysez le bilan final de ce budget personnel et fournissez des recommandations :
+
+        **BILAN FINAL - BUDGET PERSONNEL: {stats['budget_nom']}**
+        - Période: du {stats['date_debut']} au {stats['date_fin']}
+        - Montant initial: {stats['montant_initial']}
+        - Total dépenses: {stats['total_depenses']}
+        - Solde final: {stats['solde_actuel']}
+        - Taux d'utilisation: {stats['taux_utilisation']}%
+
+        **PERFORMANCE PAR CATÉGORIE:**
+        """
+        
+        for cat in stats['categories']:
+            prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
+        
+        prompt += f"""
+
+        **ANALYSE DEMANDÉE (Format structuré):**
+
+        🏆 **BILAN GLOBAL**
+        - Évaluation de votre gestion budgétaire
+        - Points forts de votre approche
+        - Domaines d'amélioration identifiés
+
+        📈 **LEÇONS APPRISES**
+        - Ce que vous avez bien géré
+        - Les erreurs à éviter à l'avenir
+        - Comportements à maintenir
+
+        💰 **RECOMMANDATIONS POUR L'AVENIR**
+        - Stratégies pour vos futurs budgets
+        - Conseils pour optimiser vos dépenses
+        - Objectifs financiers à fixer
+
+        🎯 **PLAN D'ACTION**
+        - Actions concrètes pour améliorer
+        - Habitudes à développer
+        - Conseils pour maintenir l'équilibre
+
+        Réponse en français, format structuré avec des emojis et des sections claires.
+        """
+    
+    # Appel à l'API Gemini
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    response = model.generate_content(prompt)
+    
+    return response.text
+
+
+def _generer_conseil_entreprise(budget, stats, type_periode):
+    """
+    Génère des conseils spécifiques pour les comptes entreprise
+    """
+    if type_periode == 'hebdomadaire':
+        prompt = f"""
+        En tant qu'expert en gestion financière d'entreprise, analysez les statistiques hebdomadaires suivantes et fournissez des conseils adaptés à une entreprise :
+
+        **BUDGET ENTREPRISE: {stats['budget_nom']}**
+        - Devise: {stats['devise']}
+        - Montant initial: {stats['montant_initial']}
+        - Dépenses cette semaine: {stats['total_depenses']}
+        - Entrées/Revenus cette semaine: {stats['total_entrees']}
+        - Solde actuel: {stats['solde_actuel']}
+        - Taux d'utilisation: {stats['taux_utilisation']}%
+
+        **DÉPENSES PAR CATÉGORIE:**
+        """
+        
+        for cat in stats['categories']:
+            prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
+        
+        prompt += f"""
+
+        **CONSEILS DEMANDÉS (Format structuré):**
+
+        📊 **ANALYSE FINANCIÈRE DE LA SEMAINE**
+        - Évaluation de la santé financière de l'entreprise
+        - Analyse des flux de trésorerie
+        - Performance par rapport aux objectifs
+
+        💼 **GESTION OPÉRATIONNELLE**
+        - Optimisation des coûts opérationnels
+        - Conseils pour améliorer la rentabilité
+        - Stratégies de réduction des dépenses
+
+        📈 **STRATÉGIE FINANCIÈRE**
+        - Recommandations pour maximiser les revenus
+        - Conseils pour équilibrer dépenses et investissements
+        - Stratégies de croissance financière
+
+        ⚠️ **GESTION DES RISQUES**
+        - Alertes sur les catégories critiques
+        - Conseils pour éviter les dépassements
+        - Stratégies de prévention des difficultés
+
+        🎯 **OBJECTIFS POUR LA SEMAINE PROCHAINE**
+        - Objectifs financiers réalistes
+        - Actions prioritaires à entreprendre
+        - Conseils pour maintenir la performance
+
+        Réponse en français, format structuré avec des emojis et des sections claires.
+        """
+    
+    else:  # final
+        prompt = f"""
+        En tant qu'expert en gestion financière d'entreprise, analysez le bilan final de ce budget d'entreprise et fournissez des recommandations stratégiques :
+
+        **BILAN FINAL - BUDGET ENTREPRISE: {stats['budget_nom']}**
+        - Période: du {stats['date_debut']} au {stats['date_fin']}
+        - Montant initial: {stats['montant_initial']}
+        - Total dépenses: {stats['total_depenses']}
+        - Total entrées/revenus: {stats['total_entrees']}
+        - Solde final: {stats['solde_actuel']}
+        - Taux d'utilisation: {stats['taux_utilisation']}%
+
+        **PERFORMANCE PAR CATÉGORIE:**
+        """
+        
+        for cat in stats['categories']:
+            prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
+        
+        prompt += f"""
+
+        **ANALYSE DEMANDÉE (Format structuré):**
+
+        🏢 **BILAN STRATÉGIQUE**
+        - Évaluation globale de la gestion financière
+        - Performance par rapport aux objectifs business
+        - Impact sur la rentabilité de l'entreprise
+
+        📊 **ANALYSE DES PERFORMANCES**
+        - Catégories les plus performantes
+        - Domaines nécessitant des améliorations
+        - Efficacité de l'allocation des ressources
+
+        💡 **RECOMMANDATIONS STRATÉGIQUES**
+        - Optimisations pour les futurs budgets
+        - Stratégies d'amélioration de la rentabilité
+        - Conseils pour la croissance financière
+
+        🎯 **PLAN D'ACTION FUTUR**
+        - Actions prioritaires à entreprendre
+        - Objectifs financiers à fixer
+        - Stratégies de développement
+
+        Réponse en français, format structuré avec des emojis et des sections claires.
+        """
+    
+    # Appel à l'API Gemini
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    response = model.generate_content(prompt)
+    
+    return response.text
+
+
+def _generer_conseil_generique(budget, stats, type_periode):
+    """
+    Génère des conseils génériques pour les autres types de comptes
+    """
+    if type_periode == 'hebdomadaire':
+        prompt = f"""
+        En tant qu'expert en gestion financière, analysez les statistiques hebdomadaires suivantes :
+
+        **BUDGET: {stats['budget_nom']}**
+        - Type de compte: {stats['compte_type']}
+        - Devise: {stats['devise']}
+        - Montant initial: {stats['montant_initial']}
+        - Dépenses cette semaine: {stats['total_depenses']}
+        - Entrées cette semaine: {stats['total_entrees']}
+        - Solde actuel: {stats['solde_actuel']}
+        - Taux d'utilisation: {stats['taux_utilisation']}%
+
+        **DÉPENSES PAR CATÉGORIE:**
+        """
+        
+        for cat in stats['categories']:
+            prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
+        
+        prompt += f"""
+
+        **CONSEILS DEMANDÉS:**
+        1. Analyse de la gestion budgétaire
+        2. Recommandations d'amélioration
+        3. Conseils pour la semaine prochaine
+        4. Alertes sur les risques potentiels
+
+        Réponse en français, format structuré.
+        """
+    
+    else:  # final
+        prompt = f"""
+        En tant qu'expert en gestion financière, analysez le bilan final de ce budget :
+
+        **BILAN FINAL - BUDGET: {stats['budget_nom']}**
+        - Type de compte: {stats['compte_type']}
+        - Période: du {stats['date_debut']} au {stats['date_fin']}
+        - Montant initial: {stats['montant_initial']}
+        - Total dépenses: {stats['total_depenses']}
+        - Total entrées: {stats['total_entrees']}
+        - Solde final: {stats['solde_actuel']}
+        - Taux d'utilisation: {stats['taux_utilisation']}%
+
+        **PERFORMANCE PAR CATÉGORIE:**
+        """
+        
+        for cat in stats['categories']:
+            prompt += f"\n- {cat['nom']}: {cat['montant_depense']}/{cat['montant_initial']} ({cat['pourcentage_utilise']}%)"
+        
+        prompt += f"""
+
+        **ANALYSE DEMANDÉE:**
+        1. Bilan global de la gestion
+        2. Points forts et points faibles
+        3. Recommandations pour l'avenir
+        4. Stratégies d'amélioration
+
+        Réponse en français, format structuré.
+        """
+    
+    # Appel à l'API Gemini
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    response = model.generate_content(prompt)
+    
+    return response.text
 
 
 @shared_task

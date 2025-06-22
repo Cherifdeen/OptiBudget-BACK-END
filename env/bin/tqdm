@@ -1,4 +1,4 @@
-#!/home/billa/Bureau/OptiBudget/OptiBudget-BACK-END/env/bin/python3
+#!/home/billa/Bureau/OptiBudget/OptiBudget-BACK-END/env/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys

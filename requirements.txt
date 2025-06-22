@@ -16,6 +16,7 @@ django-celery-beat==2.8.1
 django-filter==25.1
 django-timezone-field==7.1
 djangorestframework==3.16.0
+drf-yasg==1.21.10
 google-ai-generativelanguage==0.6.15
 google-api-core==2.25.1
 google-api-python-client==2.172.0
@@ -27,6 +28,7 @@ grpcio==1.73.0
 grpcio-status==1.71.0
 httplib2==0.22.0
 idna==3.10
+inflection==0.5.1
 kombu==5.5.4
 packaging==25.0
 pillow==11.2.1
@@ -41,6 +43,8 @@ pyparsing==3.2.3
 python-crontab==3.2.0
 python-dateutil==2.9.0.post0
 python-decouple==3.8
+pytz==2025.2
+pyyaml==6.0.2
 redis==6.2.0
 requests==2.32.4
 rsa==4.9.1
@@ -50,7 +54,10 @@ tqdm==4.67.1
 typing-inspection==0.4.1
 typing_extensions==4.14.0
 tzdata==2025.2
+ua-parser==1.0.1
+ua-parser-builtins==0.18.0.post1
 uritemplate==4.2.0
 urllib3==2.4.0
+user-agents==2.2.0
 vine==5.1.0
 wcwidth==0.2.13

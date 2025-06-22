@@ -8,29 +8,29 @@ class ClientKeyMiddleware:
         
         # URLs exemptées totalement (pas besoin de clé même hors navigateur)
         self.free_exempt_urls = [
-            'login',
-            'profil',
-            'reset_password',
-            'search_account',
-            'change_password',
-            'signup',
-            'dashboardadmin',
-            'parametre',
+            'optibudget_admin:login',
+            'optibudget_admin:profil',
+            'optibudget_admin:reset_password',
+            'optibudget_admin:search_account',
+            'optibudget_admin:change_password',
+            'optibudget_admin:signup',
+            'optibudget_admin:dashboardadmin',
+            'optibudget_admin:parametre',
             
             
         ]
 
         # URLs spéciales : clé obligatoire hors navigateur
         self.browser_allowed_urls = [
-            'user-register',
-            'user-login',
-            'user-logout',
-            'user-choices',
-            'password-reset-request',
-            'user-choices',
-            'password-reset-confirm',
+            'accounts:verify_email',
+            'accounts:password_reset_request',
+            'accounts:password_reset_confirm',
+            'accounts:login',
+            'accounts:token_refresh',
+            'accounts:user-choices',
             
             
+              
         ]
 
     def __call__(self, request):
@@ -91,7 +91,7 @@ class ClientKeyMiddleware:
     def is_browser_request(self, request):
         """
         Détecte si la requête provient d'un navigateur web classique.
-        On s’appuie sur le header User-Agent qui contient des signatures de navigateurs.
+        On s'appuie sur le header User-Agent qui contient des signatures de navigateurs.
         """
         user_agent = request.headers.get('User-Agent', '').lower()
         if not user_agent:

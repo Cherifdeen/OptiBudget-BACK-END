@@ -7,14 +7,14 @@ app_name = 'budget'
 # Configuration du router principal
 router = DefaultRouter()
 router.register(r'budgets', views.BudgetViewSet, basename='budget')
-router.register(r'categories-depense', views.CategorieDepenseViewSet, basename='categoriedepense')
+router.register(r'categories-depense', views.CategorieDepenseViewSet, basename='categorie-depense')
 router.register(r'depenses', views.DepenseViewSet, basename='depense')
 router.register(r'entrees', views.EntreeViewSet, basename='entree')
 router.register(r'notifications', views.NotificationViewSet, basename='notification')
 router.register(r'conseils', views.ConseilViewSet, basename='conseil')
 router.register(r'employes', views.EmployeViewSet, basename='employe')
-router.register(r'paiements-employes', views.PaiementEmployeViewSet, basename='paiements-employes')
-router.register(r'montants-salaire', views.MontantSalaireViewSet, basename='montantsalaire')
+router.register(r'paiements-employes', views.PaiementEmployeViewSet, basename='paiement-employe')
+router.register(r'montants-salaire', views.MontantSalaireViewSet, basename='montant-salaire')
 
 urlpatterns = [
     # Inclusion des URLs générées par le router
@@ -67,21 +67,13 @@ urlpatterns = [
          name='conseil-recents'),
     
     # URLs de statistiques personnalisées (fonctions de vues)
-    path('budgets/<uuid:budget_id>/statistics/', 
-         views.budget_statistics, 
-         name='budget-statistics'),
+    path('budgets/<uuid:budget_id>/statistiques/', views.budget_statistics, name='budget-statistics'),
+    path('budgets/statistiques-globales/', views.all_budgets_statistics, name='all-budgets-statistics'),
+    path('categories/<uuid:category_id>/statistiques/', views.category_statistics, name='category-statistics'),
+    path('rapport-financier-global/', views.global_financial_report, name='global-financial-report'),
     
-    path('budgets/statistics/', 
-         views.all_budgets_statistics, 
-         name='all-budgets-statistics'),
-    
-    path('categories/<uuid:category_id>/statistics/', 
-         views.category_statistics, 
-         name='category-statistics'),
-    
-    path('financial-report/', 
-         views.global_financial_report, 
-         name='global-financial-report'),
+    # Endpoint de test des conseils
+    path('test-conseils/', views.test_conseils_par_type, name='test-conseils-par-type'),
 ]
 
 

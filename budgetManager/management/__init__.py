@@ -1,0 +1,1 @@
+# Fichier vide pour que Django reconnaisse le dossier management 

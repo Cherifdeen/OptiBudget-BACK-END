@@ -1,8 +1,11 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import CustomUser, UserPreferences
+from django.utils import timezone
+from .models import CustomUser, UserPreferences, UserDevice, LoginAttempt
+import uuid
 
 class UserPreferencesSerializer(serializers.ModelSerializer):
     """
@@ -10,7 +13,7 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = UserPreferences
-        fields = ['notifications_email', 'theme']
+        fields = ['notifications_email', 'notifications_push', 'two_factor_auth', 'theme']
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -106,165 +109,176 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Sérialiseur personnalisé pour l'obtention de tokens JWT"""
+    
+    def validate(self, attrs):
+        # Récupérer l'email et le mot de passe
+        email = attrs.get('email')
+        password = attrs.get('password')
+        
+        if email and password:
+            # Vérifier si l'utilisateur existe
+            try:
+                user = CustomUser.objects.get(email=email)
+            except CustomUser.DoesNotExist:
+                raise serializers.ValidationError('Email ou mot de passe incorrect.')
+            
+            # Vérifier si le compte est verrouillé
+            if user.is_account_locked():
+                raise serializers.ValidationError('Votre compte est temporairement verrouillé. Réessayez plus tard.')
+            
+            # Authentifier l'utilisateur
+            user = authenticate(email=email, password=password)
+            
+            if not user:
+                # Incrémenter les tentatives échouées
+                try:
+                    user = CustomUser.objects.get(email=email)
+                    user.increment_failed_attempts()
+                    
+                    # Enregistrer la tentative échouée
+                    LoginAttempt.objects.create(
+                        user=user,
+                        ip_address=self.context['request'].META.get('REMOTE_ADDR'),
+                        user_agent=self.context['request'].META.get('HTTP_USER_AGENT', ''),
+                        success=False
+                    )
+                except CustomUser.DoesNotExist:
+                    pass
+                
+                raise serializers.ValidationError('Email ou mot de passe incorrect.')
+            
+            # Réinitialiser les tentatives échouées en cas de succès
+            user.failed_login_attempts = 0
+            user.last_login_ip = self.context['request'].META.get('REMOTE_ADDR')
+            user.last_activity = timezone.now()
+            user.save()
+            
+            # Enregistrer la tentative réussie
+            LoginAttempt.objects.create(
+                user=user,
+                ip_address=self.context['request'].META.get('REMOTE_ADDR'),
+                user_agent=self.context['request'].META.get('HTTP_USER_AGENT', ''),
+                success=True
+            )
+            
+            # Générer les tokens
+            refresh = self.get_token(user)
+            data = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_email_verified': user.is_email_verified,
+                }
+            }
+            
+            return data
+        else:
+            raise serializers.ValidationError('Email et mot de passe requis.')
+
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    """
-    Serializer spécialisé pour l'inscription des utilisateurs
-    """
-    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    password_confirm = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    """Sérialiseur pour l'inscription d'un nouvel utilisateur"""
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True)
     
     class Meta:
         model = CustomUser
-        fields = [
-            'username', 'email', 'first_name', 'last_name', 'phone',
-            'compte', 'nom_entr', 'pays', 'devise', 'langue',
-            'password', 'password_confirm'
-        ]
+        fields = ['email', 'first_name', 'last_name', 'password', 'password_confirm', 
+                 'phone', 'nom_entr', 'date_naiss', 'compte', 'profession', 'pays', 'devise', 'langue']
         extra_kwargs = {
             'email': {'required': True},
             'first_name': {'required': True},
             'last_name': {'required': True},
         }
     
-    def validate_email(self, value):
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Un utilisateur avec cet email existe déjà.")
-        return value
-    
-    def validate_username(self, value):
-        if CustomUser.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Ce nom d'utilisateur est déjà pris.")
-        return value
-    
     def validate(self, attrs):
-        if attrs.get('password') != attrs.get('password_confirm'):
+        if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError("Les mots de passe ne correspondent pas.")
-        
-        password = attrs.get('password')
-        if password:
-            try:
-                validate_password(password)
-            except ValidationError as e:
-                raise serializers.ValidationError({'password': list(e.messages)})
-        
-        if attrs.get('compte') == 'entreprise' and not attrs.get('nom_entr'):
-            raise serializers.ValidationError({
-                'nom_entr': "Le nom de l'entreprise est requis pour les comptes entreprise."
-            })
-        
         return attrs
     
     def create(self, validated_data):
         validated_data.pop('password_confirm')
-        password = validated_data.pop('password')
+        user = CustomUser.objects.create_user(**validated_data)
         
-        user = CustomUser.objects.create_user(
-            password=password,
-            **validated_data
-        )
-        
-        # Création des préférences par défaut
+        # Créer les préférences par défaut
         UserPreferences.objects.create(user=user)
         
         return user
 
 
-class UserLoginSerializer(serializers.Serializer):
-    """
-    Serializer pour l'authentification des utilisateurs
-    """
-    username = serializers.CharField()
-    password = serializers.CharField(style={'input_type': 'password'})
+class UserDeviceSerializer(serializers.ModelSerializer):
+    """Sérialiseur pour la gestion des appareils"""
     
-    def validate(self, attrs):
-        username = attrs.get('username')
-        password = attrs.get('password')
+    class Meta:
+        model = UserDevice
+        fields = ['device_id', 'device_name', 'device_type', 'browser', 'os', 
+                 'ip_address', 'is_active', 'is_trusted', 'last_used', 'created_at']
+        read_only_fields = ['device_id', 'ip_address', 'last_used', 'created_at']
+
+
+class DeviceRegistrationSerializer(serializers.ModelSerializer):
+    """Sérialiseur pour l'enregistrement d'un nouvel appareil"""
+    
+    class Meta:
+        model = UserDevice
+        fields = ['device_name', 'device_type', 'browser', 'os', 'user_agent']
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user
         
-        if username and password:
-            # Permettre la connexion par email ou nom d'utilisateur
-            if '@' in username:
-                try:
-                    user = CustomUser.objects.get(email=username)
-                    username = user.username
-                except CustomUser.DoesNotExist:
-                    raise serializers.ValidationError("Email ou mot de passe incorrect.")
-            
-            user = authenticate(username=username, password=password)
-            
-            if user:
-                if not user.is_active:
-                    raise serializers.ValidationError("Ce compte est désactivé.")
-                if not user.statut_compte:
-                    raise serializers.ValidationError("Ce compte est suspendu.")
-                attrs['user'] = user
-                return attrs
-            else:
-                raise serializers.ValidationError("Nom d'utilisateur ou mot de passe incorrect.")
-        else:
-            raise serializers.ValidationError("Le nom d'utilisateur et le mot de passe sont requis.")
+        # Créer l'appareil
+        device = UserDevice.objects.create(
+            user=user,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            **validated_data
+        )
+        
+        return device
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour le profil utilisateur (lecture seule principalement)
-    """
-    preferences = UserPreferencesSerializer(read_only=True)
-    full_name = serializers.SerializerMethodField()
+    """Sérialiseur pour le profil utilisateur"""
+    devices = UserDeviceSerializer(many=True, read_only=True)
+    preferences = serializers.SerializerMethodField()
     
     class Meta:
         model = CustomUser
-        fields = [
-            'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
-            'phone', 'nom_entr', 'date_naiss', 'img_profil', 'compte', 
-            'profession', 'pays', 'devise', 'langue', 'preferences',
-            'date_joined', 'last_login'
-        ]
-        read_only_fields = ['id', 'username', 'date_joined', 'last_login']
+        fields = ['id', 'email', 'first_name', 'last_name', 'phone', 'nom_entr', 
+                 'date_naiss', 'img_profil', 'compte', 'profession', 'pays', 'devise', 
+                 'langue', 'statut_compte', 'is_email_verified', 'date_joined', 
+                 'last_activity', 'devices', 'preferences']
+        read_only_fields = ['id', 'email', 'is_email_verified', 'date_joined', 'last_activity']
     
-    def get_full_name(self, obj):
-        return obj.get_full_name()
+    def get_preferences(self, obj):
+        try:
+            prefs = obj.preferences
+            return {
+                'notifications_email': prefs.notifications_email,
+                'notifications_push': prefs.notifications_push,
+                'two_factor_auth': prefs.two_factor_auth,
+                'theme': prefs.theme,
+            }
+        except UserPreferences.DoesNotExist:
+            return None
 
 
-class UserUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer pour la mise à jour du profil utilisateur
-    """
-    class Meta:
-        model = CustomUser
-        fields = [
-            'first_name', 'last_name', 'email', 'phone', 'nom_entr', 
-            'date_naiss', 'img_profil', 'profession', 'pays', 'devise', 'langue'
-        ]
-    
-    def validate_email(self, value):
-        # Permettre à l'utilisateur de garder son email actuel
-        if self.instance and self.instance.email == value:
-            return value
-        
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Un utilisateur avec cet email existe déjà.")
-        return value
+class ChangePasswordSerializer(serializers.Serializer):
+    """Sérialiseur pour le changement de mot de passe"""
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True, min_length=8)
+    new_password_confirm = serializers.CharField(required=True)
     
     def validate(self, attrs):
-        # Validation pour les comptes entreprise
-        compte = getattr(self.instance, 'compte', None)
-        if compte == 'entreprise':
-            nom_entr = attrs.get('nom_entr') or getattr(self.instance, 'nom_entr', None)
-            if not nom_entr:
-                raise serializers.ValidationError({
-                    'nom_entr': "Le nom de l'entreprise est requis pour les comptes entreprise."
-                })
-        
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError("Les nouveaux mots de passe ne correspondent pas.")
         return attrs
-
-
-class PasswordChangeSerializer(serializers.Serializer):
-    """
-    Serializer pour le changement de mot de passe
-    """
-    old_password = serializers.CharField(style={'input_type': 'password'})
-    new_password = serializers.CharField(style={'input_type': 'password'})
-    confirm_password = serializers.CharField(style={'input_type': 'password'})
     
     def validate_old_password(self, value):
         user = self.context['request'].user
@@ -272,23 +286,27 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError("L'ancien mot de passe est incorrect.")
         return value
     
-    def validate_new_password(self, value):
-        try:
-            validate_password(value)
-        except ValidationError as e:
-            raise serializers.ValidationError(list(e.messages))
-        return value
+
+class EmailVerificationSerializer(serializers.Serializer):
+    """Sérialiseur pour la vérification d'email"""
+    token = serializers.UUIDField()
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Sérialiseur pour la demande de réinitialisation de mot de passe"""
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Sérialiseur pour la confirmation de réinitialisation de mot de passe"""
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=8)
+    new_password_confirm = serializers.CharField()
     
     def validate(self, attrs):
-        if attrs.get('new_password') != attrs.get('confirm_password'):
-            raise serializers.ValidationError("Les nouveaux mots de passe ne correspondent pas.")
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError("Les mots de passe ne correspondent pas.")
         return attrs
-    
-    def save(self):
-        user = self.context['request'].user
-        user.set_password(self.validated_data['new_password'])
-        user.save()
-        return user
 
 
 class UserListSerializer(serializers.ModelSerializer):
@@ -314,7 +332,7 @@ class UserPreferencesUpdateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = UserPreferences
-        fields = ['notifications_email', 'theme']
+        fields = ['notifications_email', 'notifications_push', 'two_factor_auth', 'theme']
 
 
 # Serializer pour les choix des champs (utile pour les formulaires dynamiques)
@@ -330,3 +348,12 @@ class UserChoicesSerializer(serializers.Serializer):
             'langue_choices': dict(CustomUser.LANGUES),
             'theme_choices': dict(UserPreferences.THEMES) if hasattr(UserPreferences, 'THEMES') else {}
         }
+
+
+class LoginAttemptSerializer(serializers.ModelSerializer):
+    """Sérialiseur pour les tentatives de connexion"""
+    
+    class Meta:
+        model = LoginAttempt
+        fields = ['ip_address', 'user_agent', 'success', 'timestamp', 'device']
+        read_only_fields = ['ip_address', 'user_agent', 'success', 'timestamp', 'device']

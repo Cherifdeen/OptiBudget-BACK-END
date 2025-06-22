@@ -1,31 +1,40 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
 # Configuration du router pour les ViewSets (si nécessaire)
 router = DefaultRouter()
 
+app_name = 'accounts'
+
 urlpatterns = [
-    # Authentification
-    path('auth/register/', views.UserRegistrationView.as_view(), name='user-register'),
-    path('auth/login/', views.UserLoginView.as_view(), name='user-login'),
-    path('auth/logout/', views.UserLogoutView.as_view(), name='user-logout'),
+    # Authentification JWT
+    path('login/', views.CustomTokenObtainPairView.as_view(), name='login'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('register/', views.UserRegistrationView.as_view(), name='register'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('logout-all/', views.LogoutAllDevicesView.as_view(), name='logout_all'),
     
-    # Profil utilisateur
-    path('profile/', views.UserProfileView.as_view(), name='user-profile'),
-    path('profile/preferences/', views.UserPreferencesView.as_view(), name='user-preferences'),
-    path('profile/change-password/', views.PasswordChangeView.as_view(), name='change-password'),
-    path('profile/upload-image/', views.upload_profile_image, name='upload-profile-image'),
-    path('profile/delete-image/', views.delete_profile_image, name='delete-profile-image'),
+    # Vérification et réinitialisation
+    path('verify-email/<uuid:token>/', views.EmailVerificationView.as_view(), name='verify_email'),
+    path('password-reset/', views.PasswordResetRequestView.as_view(), name='password_reset_request'),
+    path('reset-password/<uuid:token>/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     
-    # Réinitialisation de mot de passe
-    path('auth/password-reset/', views.password_reset_request, name='password-reset-request'),
-    path('auth/password-reset-confirm/<str:uidb64>/<str:token>/',views.password_reset_confirm, name='password-reset-confirm'),
-    path('verify-password/',views.PasswordVerificationView.as_view(), name='verify-password'),
+    # Profil utilisateur 
+    path('profile/', views.UserProfileView.as_view(), name='profile'),
+    path('change-password/', views.ChangePasswordView.as_view(), name='change_password'),
+    path('preferences/', views.UserPreferencesView.as_view(), name='preferences'),
     
-    # Vérification de disponibilité
-    path('check/username/', views.check_username_availability, name='check-username'),
-    path('check/email/', views.check_email_availability, name='check-email'),
+    # Gestion des appareils
+    path('devices/', views.DeviceListView.as_view(), name='device_list'),
+    path('devices/register/', views.DeviceRegistrationView.as_view(), name='device_register'),
+    path('devices/<uuid:device_id>/deactivate/', views.DeviceDeactivateView.as_view(), name='device_deactivate'),
+    path('devices/<uuid:device_id>/trust/', views.DeviceTrustView.as_view(), name='device_trust'),
+    
+    # Sécurité et statistiques
+    path('login-attempts/', views.LoginAttemptsView.as_view(), name='login_attempts'),
+    path('stats/', views.user_stats, name='user_stats'),
     
     # Gestion des utilisateurs (Admin)
     path('admin/users/', views.UserListView.as_view(), name='user-list'),
@@ -35,8 +44,6 @@ urlpatterns = [
     
     # Utilitaires
     path('choices/', views.UserChoicesView.as_view(), name='user-choices'),
-    
-
 ]
 
 # Optionnel: Ajouter des vues d'API documentation

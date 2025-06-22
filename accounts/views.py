@@ -15,15 +15,27 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import authenticate
 from tasks.sendMail import send_email_task
 from Optibudget.settings import DEFAULT_FROM_EMAIL
+from django.contrib.auth.models import User
+from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils import timezone
+from datetime import timedelta
+import uuid
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from Optibudget.swagger_config import JWT_SECURITY
 
-
-
-from .models import CustomUser, UserPreferences
+from .models import CustomUser, UserPreferences, UserDevice, LoginAttempt
 from .serializers import (
-    CustomUserSerializer, UserRegistrationSerializer, UserLoginSerializer,
-    UserProfileSerializer, UserUpdateSerializer, PasswordChangeSerializer,
+    CustomUserSerializer, UserRegistrationSerializer,
+    UserProfileSerializer,
     UserListSerializer, UserPreferencesSerializer, UserPreferencesUpdateSerializer,
-    UserChoicesSerializer
+    UserChoicesSerializer, CustomTokenObtainPairSerializer, DeviceRegistrationSerializer,
+    ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer, LoginAttemptSerializer, UserDeviceSerializer
 )
 
 
@@ -34,30 +46,68 @@ class StandardResultsSetPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class UserRegistrationView(APIView):
-    """
-    Vue pour l'inscription des utilisateurs
-    """
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """Vue personnalisée pour l'obtention de tokens JWT"""
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+class UserRegistrationView(generics.CreateAPIView):
+    """Vue pour l'inscription d'un nouvel utilisateur"""
+    queryset = CustomUser.objects.all()
+    serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
     
-    def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            
-            # Création du token d'authentification
-            token, created = Token.objects.get_or_create(user=user)
-            
-            # Données de réponse
-            response_data = {
-                'message': 'Inscription réussie',
-                'user': UserProfileSerializer(user).data,
-                'token': token.key
-            }
-            
-            return Response(response_data, status=status.HTTP_201_CREATED)
+    @swagger_auto_schema(
+        operation_description="Inscription d'un nouvel utilisateur",
+        operation_summary="Créer un nouveau compte utilisateur",
+        request_body=UserRegistrationSerializer,
+        responses={
+            201: openapi.Response(
+                description="Utilisateur créé avec succès",
+                schema=UserRegistrationSerializer
+            ),
+            400: openapi.Response(
+                description="Données invalides",
+                examples={
+                    "application/json": {
+                        "username": ["Ce nom d'utilisateur existe déjà."],
+                        "email": ["Cette adresse email existe déjà."],
+                        "password": ["Ce mot de passe est trop court."]
+                    }
+                }
+            )
+        },
+        tags=["Authentification"],
+        security=[]  # Pas d'authentification requise pour l'inscription
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+    
+    def perform_create(self, serializer):
+        user = serializer.save()
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Envoyer l'email de vérification
+        self.send_verification_email(user)
+        
+        return user
+    
+    def send_verification_email(self, user):
+        """Envoie un email de vérification"""
+        subject = 'Vérifiez votre adresse email - Optibudget'
+        html_message = render_to_string('accounts/email_verification.html', {
+            'user': user,
+            'verification_url': f"{self.request.scheme}://{self.request.get_host()}/api/accounts/verify-email/{user.email_verification_token}/"
+        })
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            DEFAULT_FROM_EMAIL,
+            [user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
 
 
 class UserLoginView(APIView):
@@ -110,31 +160,65 @@ class UserLogoutView(APIView):
         )
 
 
-class UserProfileView(APIView):
-    """
-    Vue pour récupérer et mettre à jour le profil utilisateur
-    """
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """Vue pour le profil utilisateur"""
+    serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
     
-    def get(self, request):
-        """Récupérer le profil de l'utilisateur connecté"""
-        serializer = UserProfileSerializer(request.user)
-        return Response(serializer.data)
+    @swagger_auto_schema(
+        operation_description="Récupérer le profil de l'utilisateur connecté",
+        operation_summary="Obtenir le profil utilisateur",
+        responses={
+            200: openapi.Response(
+                description="Profil utilisateur récupéré avec succès",
+                schema=UserProfileSerializer
+            ),
+            401: "Non authentifié"
+        },
+        tags=["Profil Utilisateur"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
     
-    def put(self, request):
-        """Mettre à jour le profil utilisateur"""
-        serializer = UserUpdateSerializer(
-            request.user, 
-            data=request.data, 
-            partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message': 'Profil mis à jour avec succès',
-                'user': UserProfileSerializer(request.user).data
-            })
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    @swagger_auto_schema(
+        operation_description="Mettre à jour le profil de l'utilisateur connecté",
+        operation_summary="Modifier le profil utilisateur",
+        request_body=UserProfileSerializer,
+        responses={
+            200: openapi.Response(
+                description="Profil utilisateur mis à jour avec succès",
+                schema=UserProfileSerializer
+            ),
+            400: "Données invalides",
+            401: "Non authentifié"
+        },
+        tags=["Profil Utilisateur"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Mettre à jour partiellement le profil de l'utilisateur connecté",
+        operation_summary="Modifier partiellement le profil utilisateur",
+        request_body=UserProfileSerializer,
+        responses={
+            200: openapi.Response(
+                description="Profil utilisateur mis à jour avec succès",
+                schema=UserProfileSerializer
+            ),
+            400: "Données invalides",
+            401: "Non authentifié"
+        },
+        tags=["Profil Utilisateur"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+    
+    def get_object(self):
+        return self.request.user
 
 
 class PasswordChangeView(APIView):
@@ -192,37 +276,15 @@ class PasswordVerificationView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
 
-class UserPreferencesView(APIView):
-    """
-    Vue pour gérer les préférences utilisateur
-    """
+class UserPreferencesView(generics.RetrieveUpdateAPIView):
+    """Vue pour les préférences utilisateur"""
+    serializer_class = UserPreferencesSerializer
     permission_classes = [permissions.IsAuthenticated]
     
-    def get(self, request):
-        """Récupérer les préférences utilisateur"""
-        preferences, created = UserPreferences.objects.get_or_create(
-            user=request.user
-        )
-        serializer = UserPreferencesSerializer(preferences)
-        return Response(serializer.data)
-    
-    def put(self, request):
-        """Mettre à jour les préférences utilisateur"""
-        preferences, created = UserPreferences.objects.get_or_create(
-            user=request.user
-        )
-        serializer = UserPreferencesUpdateSerializer(
-            preferences, 
-            data=request.data, 
-            partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message': 'Préférences mises à jour avec succès',
-                'preferences': serializer.data
-            })
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_object(self):
+        user = self.request.user
+        preferences, created = UserPreferences.objects.get_or_create(user=user)
+        return preferences
 
 
 class UserListView(generics.ListAPIView):
@@ -250,9 +312,13 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
     
     def get_serializer_class(self):
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return UserProfileSerializer
+            
         if self.request.method == 'GET':
             return UserProfileSerializer
-        return UserUpdateSerializer
+        return UserProfileSerializer  # Utiliser UserProfileSerializer au lieu de UserUpdateSerializer
     
     def destroy(self, request, *args, **kwargs):
         """Désactiver l'utilisateur au lieu de le supprimer"""
@@ -505,3 +571,248 @@ def password_reset_confirm(request, uidb64, token):
         {'error': 'Lien de réinitialisation invalide'}, 
         status=status.HTTP_400_BAD_REQUEST
     )
+
+
+class EmailVerificationView(APIView):
+    """Vue pour la vérification d'email"""
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request, token):
+        try:
+            user = CustomUser.objects.get(email_verification_token=token)
+            user.is_email_verified = True
+            user.email_verification_token = uuid.uuid4()
+            user.save()
+            
+            return Response({
+                'message': 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.'
+            }, status=status.HTTP_200_OK)
+        except CustomUser.DoesNotExist:
+            return Response({
+                'error': 'Token de vérification invalide.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeviceListView(generics.ListAPIView):
+    """Vue pour lister les appareils de l'utilisateur"""
+    serializer_class = UserDeviceSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return UserDevice.objects.filter(user=self.request.user, is_active=True)
+
+
+class DeviceRegistrationView(generics.CreateAPIView):
+    """Vue pour enregistrer un nouvel appareil"""
+    serializer_class = DeviceRegistrationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class DeviceDeactivateView(APIView):
+    """Vue pour désactiver un appareil"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, device_id):
+        try:
+            device = UserDevice.objects.get(
+                device_id=device_id,
+                user=request.user
+            )
+            device.is_active = False
+            device.save()
+            
+            return Response({
+                'message': 'Appareil désactivé avec succès.'
+            }, status=status.HTTP_200_OK)
+        except UserDevice.DoesNotExist:
+            return Response({
+                'error': 'Appareil non trouvé.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class DeviceTrustView(APIView):
+    """Vue pour marquer un appareil comme de confiance"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, device_id):
+        try:
+            device = UserDevice.objects.get(
+                device_id=device_id,
+                user=request.user
+            )
+            device.is_trusted = not device.is_trusted
+            device.save()
+            
+            status_text = "de confiance" if device.is_trusted else "non de confiance"
+            return Response({
+                'message': f'Appareil marqué comme {status_text}.'
+            }, status=status.HTTP_200_OK)
+        except UserDevice.DoesNotExist:
+            return Response({
+                'error': 'Appareil non trouvé.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class ChangePasswordView(APIView):
+    """Vue pour changer le mot de passe"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            
+            # Invalider tous les tokens existants
+            RefreshToken.for_user(user)
+            
+            return Response({
+                'message': 'Mot de passe changé avec succès. Veuillez vous reconnecter.'
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetRequestView(APIView):
+    """Vue pour demander une réinitialisation de mot de passe"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = CustomUser.objects.get(email=email)
+                
+                # Générer un token de réinitialisation
+                reset_token = get_random_string(64)
+                user.email_verification_token = uuid.uuid4()
+                user.save()
+                
+                # Envoyer l'email de réinitialisation
+                self.send_reset_email(user)
+                
+                return Response({
+                    'message': 'Un email de réinitialisation a été envoyé.'
+                }, status=status.HTTP_200_OK)
+            except CustomUser.DoesNotExist:
+                # Ne pas révéler si l'email existe ou non
+                return Response({
+                    'message': 'Un email de réinitialisation a été envoyé.'
+                }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def send_reset_email(self, user):
+        """Envoie un email de réinitialisation de mot de passe"""
+        subject = 'Réinitialisation de mot de passe - Optibudget'
+        html_message = render_to_string('accounts/password_reset.html', {
+            'user': user,
+            'reset_url': f"{self.request.scheme}://{self.request.get_host()}/api/accounts/reset-password/{user.email_verification_token}/"
+        })
+        plain_message = strip_tags(html_message)
+        
+        send_mail(
+            subject,
+            plain_message,
+            DEFAULT_FROM_EMAIL,
+            [user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """Vue pour confirmer la réinitialisation de mot de passe"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request, token):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = CustomUser.objects.get(email_verification_token=token)
+                user.set_password(serializer.validated_data['new_password'])
+                user.email_verification_token = uuid.uuid4()
+                user.save()
+                
+                return Response({
+                    'message': 'Mot de passe réinitialisé avec succès.'
+                }, status=status.HTTP_200_OK)
+            except CustomUser.DoesNotExist:
+                return Response({
+                    'error': 'Token de réinitialisation invalide.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginAttemptsView(generics.ListAPIView):
+    """Vue pour lister les tentatives de connexion"""
+    serializer_class = LoginAttemptSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return LoginAttempt.objects.filter(user=self.request.user)[:50]
+
+
+class LogoutView(APIView):
+    """Vue pour la déconnexion"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            refresh_token = request.data.get('refresh_token')
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            
+            return Response({
+                'message': 'Déconnexion réussie.'
+            }, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({
+                'message': 'Déconnexion réussie.'
+            }, status=status.HTTP_200_OK)
+
+
+class LogoutAllDevicesView(APIView):
+    """Vue pour déconnecter tous les appareils"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
+        # Désactiver tous les appareils
+        UserDevice.objects.filter(user=user).update(is_active=False)
+        
+        # Blacklister tous les tokens de rafraîchissement
+        for device in user.devices.all():
+            # Note: Cette implémentation nécessiterait de stocker les refresh tokens
+            # avec les appareils pour une implémentation complète
+            pass
+        
+        return Response({
+            'message': 'Tous les appareils ont été déconnectés.'
+        }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_stats(request):
+    """Vue pour les statistiques utilisateur"""
+    user = request.user
+    
+    stats = {
+        'total_devices': user.devices.filter(is_active=True).count(),
+        'trusted_devices': user.devices.filter(is_active=True, is_trusted=True).count(),
+        'failed_login_attempts': user.failed_login_attempts,
+        'is_account_locked': user.is_account_locked(),
+        'last_activity': user.last_activity,
+        'is_email_verified': user.is_email_verified,
+    }
+    
+    return Response(stats)

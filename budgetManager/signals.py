@@ -30,7 +30,7 @@ def create_notification(user, message, type_notif="INFO"):
 # ============================================================================
 
 def _generate_budget_advice(budget_instance):
-    """Génère des conseils personnalisés pour le budget"""
+    """Génère des conseils personnalisés pour le budget selon le type de compte"""
     try:
         # Calculer le pourcentage utilisé
         total_depenses = budget_instance.categorie_depenses.aggregate(
@@ -39,25 +39,71 @@ def _generate_budget_advice(budget_instance):
         
         usage_percentage = (total_depenses / budget_instance.montant) * 100 if budget_instance.montant > 0 else 0
         
-        # Générer des conseils basés sur l'utilisation
-        if usage_percentage >= 90:
-            message = f"🚨 Attention! Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Réduisez vos dépenses immédiatement."
-            notification_type = "WARNING"
-        elif usage_percentage >= 75:
-            message = f"⚠️ Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Surveillez vos dépenses."
-            notification_type = "INFO"
-        elif usage_percentage >= 50:
-            message = f"💡 Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Vous êtes sur la bonne voie!"
-            notification_type = "SUCCESS"
+        # Conseils selon le type de compte
+        if budget_instance.user.compte == 'particulier':
+            _generate_particulier_advice(budget_instance, usage_percentage)
+        elif budget_instance.user.compte == 'entreprise':
+            _generate_entreprise_advice(budget_instance, usage_percentage)
         else:
-            # Pas de conseil nécessaire pour les budgets peu utilisés
-            return
-            
-        create_notification(budget_instance.user, message, notification_type)
+            _generate_generic_advice(budget_instance, usage_percentage)
         
     except Exception as e:
         # Log l'erreur mais ne pas faire échouer le signal
         print(f"Erreur lors de la génération des conseils budget: {e}")
+
+
+def _generate_particulier_advice(budget_instance, usage_percentage):
+    """Génère des conseils spécifiques pour les comptes particuliers"""
+    if usage_percentage >= 90:
+        message = f"🚨 ATTENTION! Vous avez utilisé {usage_percentage:.1f}% de votre budget personnel '{budget_instance.nom}'. Il est temps de réduire vos dépenses et de revoir vos priorités de consommation."
+        notification_type = "ERROR"
+    elif usage_percentage >= 75:
+        message = f"⚠️ Votre budget personnel '{budget_instance.nom}' est à {usage_percentage:.1f}% d'utilisation. Surveillez vos dépenses et évitez les achats non essentiels cette semaine."
+        notification_type = "WARNING"
+    elif usage_percentage >= 50:
+        message = f"💡 Votre budget personnel '{budget_instance.nom}' est à {usage_percentage:.1f}% d'utilisation. Vous gérez bien vos finances! Continuez sur cette lancée."
+        notification_type = "SUCCESS"
+    else:
+        # Pas de conseil nécessaire pour les budgets peu utilisés
+        return
+    
+    create_notification(budget_instance.user, message, notification_type)
+
+
+def _generate_entreprise_advice(budget_instance, usage_percentage):
+    """Génère des conseils spécifiques pour les comptes entreprise"""
+    if usage_percentage >= 90:
+        message = f"🚨 URGENT! Votre budget d'entreprise '{budget_instance.nom}' est à {usage_percentage:.1f}% d'utilisation. Réduisez immédiatement les coûts opérationnels et optimisez vos dépenses."
+        notification_type = "ERROR"
+    elif usage_percentage >= 75:
+        message = f"⚠️ Votre budget d'entreprise '{budget_instance.nom}' est à {usage_percentage:.1f}% d'utilisation. Analysez vos coûts et identifiez les optimisations possibles."
+        notification_type = "WARNING"
+    elif usage_percentage >= 50:
+        message = f"💼 Votre budget d'entreprise '{budget_instance.nom}' est à {usage_percentage:.1f}% d'utilisation. Bonne gestion financière! Continuez à optimiser vos processus."
+        notification_type = "SUCCESS"
+    else:
+        # Pas de conseil nécessaire pour les budgets peu utilisés
+        return
+    
+    create_notification(budget_instance.user, message, notification_type)
+
+
+def _generate_generic_advice(budget_instance, usage_percentage):
+    """Génère des conseils génériques pour les autres types de comptes"""
+    if usage_percentage >= 90:
+        message = f"🚨 Attention! Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Réduisez vos dépenses immédiatement."
+        notification_type = "WARNING"
+    elif usage_percentage >= 75:
+        message = f"⚠️ Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Surveillez vos dépenses."
+        notification_type = "INFO"
+    elif usage_percentage >= 50:
+        message = f"💡 Vous avez utilisé {usage_percentage:.1f}% de votre budget '{budget_instance.nom}'. Vous êtes sur la bonne voie!"
+        notification_type = "SUCCESS"
+    else:
+        # Pas de conseil nécessaire pour les budgets peu utilisés
+        return
+    
+    create_notification(budget_instance.user, message, notification_type)
 
 
 @receiver(post_save, sender=Budget)

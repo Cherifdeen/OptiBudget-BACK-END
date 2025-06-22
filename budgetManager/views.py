@@ -15,6 +15,9 @@ from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from Optibudget.swagger_config import JWT_SECURITY, common_responses
 from .models import Budget, CategorieDepense, Depense, Entree, PaiementEmploye
 from .serializers import BudgetSerializer, CategorieDepenseSerializer, DepenseSerializer, EntreeSerializer
 from django.db import transaction
@@ -30,6 +33,9 @@ from .serializers import (
     EmployeSerializer, PaiementEmployeSerializer, MontantSalaireSerializer
 )
 from .customPagination import CustomCursorPagination
+from .permissions import EntreprisePermission, EntrepriseOrReadOnlyPermission
+from .reports import BudgetReportGenerator, EmployeReportGenerator
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 
 
@@ -39,10 +45,78 @@ class BudgetViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomCursorPagination
     
+    @swagger_auto_schema(
+        operation_description="Récupérer la liste des budgets de l'utilisateur connecté",
+        operation_summary="Lister les budgets",
+        responses={
+            200: openapi.Response(
+                description="Liste des budgets récupérée avec succès",
+                schema=BudgetSerializer
+            ),
+            401: common_responses['401'],
+            403: common_responses['403_client_key']
+        },
+        tags=["Budgets"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Créer un nouveau budget",
+        operation_summary="Créer un budget",
+        request_body=BudgetSerializer,
+        responses={
+            201: openapi.Response(
+                description="Budget créé avec succès",
+                schema=BudgetSerializer
+            ),
+            400: "Données invalides",
+            401: common_responses['401'],
+            403: common_responses['403_client_key']
+        },
+        tags=["Budgets"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Récupérer un budget spécifique",
+        operation_summary="Obtenir un budget",
+        responses={
+            200: openapi.Response(
+                description="Budget récupéré avec succès",
+                schema=BudgetSerializer
+            ),
+            404: "Budget non trouvé",
+            401: common_responses['401'],
+            403: common_responses['403_client_key']
+        },
+        tags=["Budgets"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
     def get_queryset(self):
         """Retourner seulement les budgets de l'utilisateur connecté"""
         return Budget.objects.filter(user=self.request.user).order_by('-created_at')
     
+    @swagger_auto_schema(
+        operation_description="Récupérer toutes les catégories d'un budget spécifique",
+        operation_summary="Obtenir les catégories d'un budget",
+        responses={
+            200: openapi.Response(
+                description="Catégories récupérées avec succès",
+                schema=CategorieDepenseSerializer
+            ),
+            404: "Budget non trouvé",
+            401: "Non authentifié"
+        },
+        tags=["Budgets"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
     @action(detail=True, methods=['get'])
     def categories(self, request, pk=None):
         """Récupérer toutes les catégories d'un budget"""
@@ -51,6 +125,20 @@ class BudgetViewSet(viewsets.ModelViewSet):
         serializer = CategorieDepenseSerializer(categories, many=True)
         return Response(serializer.data)
     
+    @swagger_auto_schema(
+        operation_description="Récupérer toutes les dépenses d'un budget spécifique",
+        operation_summary="Obtenir les dépenses d'un budget",
+        responses={
+            200: openapi.Response(
+                description="Dépenses récupérées avec succès",
+                schema=DepenseSerializer
+            ),
+            404: "Budget non trouvé",
+            401: "Non authentifié"
+        },
+        tags=["Budgets"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
     @action(detail=True, methods=['get'])
     def depenses(self, request, pk=None):
         """Récupérer toutes les dépenses d'un budget"""
@@ -59,6 +147,37 @@ class BudgetViewSet(viewsets.ModelViewSet):
         serializer = DepenseSerializer(depenses, many=True)
         return Response(serializer.data)
     
+    @swagger_auto_schema(
+        operation_description="Récupérer le résumé et les statistiques d'un budget",
+        operation_summary="Obtenir le résumé d'un budget",
+        responses={
+            200: openapi.Response(
+                description="Résumé du budget récupéré avec succès",
+                examples={
+                    "application/json": {
+                        "budget": {
+                            "id": 1,
+                            "nom": "Budget Mensuel",
+                            "montant_initial": 1000.00,
+                            "montant": 750.00
+                        },
+                        "statistiques": {
+                            "montant_initial": 1000.00,
+                            "montant_restant": 750.00,
+                            "montant_utilise": 250.00,
+                            "pourcentage_utilise": 25.0,
+                            "nombre_categories": 5,
+                            "total_depenses": 250.00
+                        }
+                    }
+                }
+            ),
+            404: "Budget non trouvé",
+            401: "Non authentifié"
+        },
+        tags=["Budgets"],
+        security=JWT_SECURITY  # Authentification JWT requise
+    )
     @action(detail=True, methods=['get'])
     def resume(self, request, pk=None):
         """Résumé du budget avec statistiques"""
@@ -89,6 +208,89 @@ class BudgetViewSet(viewsets.ModelViewSet):
         }
         
         return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def export_csv(self, request):
+        """Exporter tous les budgets en CSV"""
+        try:
+            # Paramètres de filtrage
+            budget_id = request.query_params.get('budget_id')
+            date_debut_str = request.query_params.get('date_debut')
+            date_fin_str = request.query_params.get('date_fin')
+            
+            date_debut = None
+            date_fin = None
+            
+            if date_debut_str:
+                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
+            if date_fin_str:
+                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
+            
+            # Générer le rapport
+            generator = BudgetReportGenerator(request.user)
+            return generator.export_to_csv(budget_id, date_debut, date_fin)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Erreur lors de l\'export: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'])
+    def export_json(self, request):
+        """Exporter tous les budgets en JSON"""
+        try:
+            # Paramètres de filtrage
+            budget_id = request.query_params.get('budget_id')
+            date_debut_str = request.query_params.get('date_debut')
+            date_fin_str = request.query_params.get('date_fin')
+            
+            date_debut = None
+            date_fin = None
+            
+            if date_debut_str:
+                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
+            if date_fin_str:
+                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
+            
+            # Générer le rapport
+            generator = BudgetReportGenerator(request.user)
+            return generator.export_to_json(budget_id, date_debut, date_fin)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Erreur lors de l\'export: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'])
+    def rapport_complet(self, request):
+        """Générer un rapport complet de tous les budgets"""
+        try:
+            # Paramètres de filtrage
+            budget_id = request.query_params.get('budget_id')
+            date_debut_str = request.query_params.get('date_debut')
+            date_fin_str = request.query_params.get('date_fin')
+            
+            date_debut = None
+            date_fin = None
+            
+            if date_debut_str:
+                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
+            if date_fin_str:
+                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
+            
+            # Générer le rapport
+            generator = BudgetReportGenerator(request.user)
+            rapport = generator.generate_budget_summary(budget_id, date_debut, date_fin)
+            
+            return Response(rapport)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Erreur lors de la génération du rapport: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class CategorieDepenseViewSet(viewsets.ModelViewSet):
@@ -99,6 +301,10 @@ class CategorieDepenseViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Retourner seulement les catégories de l'utilisateur connecté"""
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return CategorieDepense.objects.none()
+        
         queryset = CategorieDepense.objects.filter(user=self.request.user).order_by('-created_at')
         # Filtrer par budget si spécifié
         budget_id = self.request.query_params.get('budget_id')
@@ -296,18 +502,114 @@ class DepenseViewSet(viewsets.ModelViewSet):
     serializer_class = DepenseSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = CustomCursorPagination
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['nom', 'description']
+    ordering_fields = ['nom', 'montant', 'created_at', 'updated_at']
+    ordering = ['-created_at']
+    
+    @swagger_auto_schema(
+        operation_description="Récupérer la liste des dépenses avec possibilité de recherche et filtrage",
+        operation_summary="Lister les dépenses",
+        manual_parameters=[
+            openapi.Parameter(
+                'search',
+                openapi.IN_QUERY,
+                description="Rechercher dans le nom et la description des dépenses",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'ordering',
+                openapi.IN_QUERY,
+                description="Trier les résultats (ex: nom, -montant, created_at, -updated_at)",
+                type=openapi.TYPE_STRING,
+                required=False
+            ),
+            openapi.Parameter(
+                'categorie_id',
+                openapi.IN_QUERY,
+                description="Filtrer par ID de catégorie",
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_UUID,
+                required=False
+            ),
+            openapi.Parameter(
+                'budget_id',
+                openapi.IN_QUERY,
+                description="Filtrer par ID de budget",
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_UUID,
+                required=False
+            ),
+            openapi.Parameter(
+                'montant_min',
+                openapi.IN_QUERY,
+                description="Filtrer par montant minimum (ex: 10.50)",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_FLOAT,
+                required=False
+            ),
+            openapi.Parameter(
+                'montant_max',
+                openapi.IN_QUERY,
+                description="Filtrer par montant maximum (ex: 100.00)",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_FLOAT,
+                required=False
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="Liste des dépenses récupérée avec succès",
+                schema=DepenseSerializer
+            ),
+            401: common_responses['401'],
+            403: common_responses['403_client_key']
+        },
+        tags=["Dépenses"],
+        security=JWT_SECURITY
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
     
     def get_queryset(self):
         """Retourner seulement les dépenses de l'utilisateur connecté"""
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return Depense.objects.none()
+        
         queryset = Depense.objects.filter(user=self.request.user).order_by('-created_at')
+        
         # Filtrer par catégorie si spécifié
         categorie_id = self.request.query_params.get('categorie_id')
         if categorie_id:
             queryset = queryset.filter(id_cat_depense_id=categorie_id)
+        
         # Filtrer par budget si spécifié
         budget_id = self.request.query_params.get('budget_id')
         if budget_id:
             queryset = queryset.filter(id_budget_id=budget_id)
+        
+        # Filtrer par montant minimum si spécifié
+        montant_min = self.request.query_params.get('montant_min')
+        if montant_min:
+            try:
+                montant_min = float(montant_min)
+                queryset = queryset.filter(montant__gte=montant_min)
+            except (ValueError, TypeError):
+                # Ignorer si la valeur n'est pas un nombre valide
+                pass
+        
+        # Filtrer par montant maximum si spécifié
+        montant_max = self.request.query_params.get('montant_max')
+        if montant_max:
+            try:
+                montant_max = float(montant_max)
+                queryset = queryset.filter(montant__lte=montant_max)
+            except (ValueError, TypeError):
+                # Ignorer si la valeur n'est pas un nombre valide
+                pass
+        
         return queryset
     
     @transaction.atomic
@@ -332,13 +634,17 @@ class DepenseViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class EntreeViewSet(viewsets.ModelViewSet):
-    """ViewSet pour la gestion des entrées"""
+    """ViewSet pour la gestion des entrées (comptes entreprise uniquement)"""
     serializer_class = EntreeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [EntreprisePermission]
     pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les entrées de l'utilisateur connecté"""
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return Entree.objects.none()
+        
         return Entree.objects.filter(user=self.request.user).order_by('-created_at')
     
     @action(detail=False, methods=['get'])
@@ -377,6 +683,10 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Retourner seulement les notifications de l'utilisateur connecté"""
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return Notification.objects.none()
+        
         return Notification.objects.filter(user=self.request.user).filter(~Q(type_notification='LOG')).order_by('-created_at')
     
     @action(detail=False, methods=['get'])
@@ -412,6 +722,10 @@ class ConseilViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Retourner seulement les conseils de l'utilisateur connecté"""
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return Conseil.objects.none()
+        
         return Conseil.objects.filter(user=self.request.user).order_by('-created_at')
     
     @action(detail=False, methods=['get'])
@@ -429,11 +743,15 @@ class ConseilViewSet(viewsets.ModelViewSet):
 class EmployeViewSet(viewsets.ModelViewSet):
     """ViewSet pour la gestion des employés (comptes entreprise uniquement)"""
     serializer_class = EmployeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [EntreprisePermission]
     pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les employés de l'utilisateur connecté"""
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return Employe.objects.none()
+        
         return Employe.objects.filter(user=self.request.user).order_by('nom', 'prenom')
     
     @action(detail=True, methods=['get'])
@@ -461,68 +779,94 @@ class EmployeViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def actifs(self, request):
-        """Récupérer les employés actifs (En service uniquement)"""
-        employes = Employe.objects.filter(user=request.user, actif='ES')
-        serializer = self.get_serializer(employes, many=True)
+        """Récupérer tous les employés actifs"""
+        employes_actifs = Employe.objects.filter(
+            user=request.user, 
+            actif='ES'
+        ).order_by('nom', 'prenom')
+        serializer = EmployeSerializer(employes_actifs, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['post'])
-    def desactiver(self, request, pk=None):
-        """Désactiver un employé"""
-        employe = self.get_object()
-        # Fix: Set actif to 'HS' (Hors service) instead of is_active=False
-        employe.actif = 'HS'
-        employe.save()
-        return Response({'status': 'employé désactivé'})
-    
-    @action(detail=True, methods=['post'])
-    def activer(self, request, pk=None):
-        """Activer un employé"""
-        employe = self.get_object()
-        # Fix: Set actif to 'ES' (En service) instead of is_active=True
-        employe.actif = 'ES'
-        employe.save()
-        return Response({'status': 'employé activé'})
     @action(detail=False, methods=['get'])
-    def par_statut(self, request, statut=None):
-        """Récupérer les employés par statut"""
-        # Vérifier que le statut est valide
-        statuts_valides = ['ES', 'EC', 'ER', 'LC', 'HS', 'DM']
-        if statut not in statuts_valides:
+    def export_csv(self, request):
+        """Exporter tous les employés en CSV"""
+        try:
+            # Paramètres de filtrage
+            date_debut_str = request.query_params.get('date_debut')
+            date_fin_str = request.query_params.get('date_fin')
+            
+            date_debut = None
+            date_fin = None
+            
+            if date_debut_str:
+                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
+            if date_fin_str:
+                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
+            
+            # Générer le rapport
+            generator = EmployeReportGenerator(request.user)
+            return generator.export_to_csv(date_debut, date_fin)
+            
+        except Exception as e:
             return Response(
-                {'error': f'Statut invalide. Statuts valides: {statuts_valides}'}, 
-                status=400
+                {'error': f'Erreur lors de l\'export: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-        employes = Employe.objects.filter(user=request.user, actif=statut)
-        serializer = self.get_serializer(employes, many=True)
-        return Response(serializer.data)
     
+    @action(detail=False, methods=['get'])
+    def rapport_complet(self, request):
+        """Générer un rapport complet des employés"""
+        try:
+            # Paramètres de filtrage
+            date_debut_str = request.query_params.get('date_debut')
+            date_fin_str = request.query_params.get('date_fin')
+            
+            date_debut = None
+            date_fin = None
+            
+            if date_debut_str:
+                date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
+            if date_fin_str:
+                date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date()
+            
+            # Générer le rapport
+            generator = EmployeReportGenerator(request.user)
+            rapport = generator.generate_employe_summary(date_debut, date_fin)
+            
+            return Response(rapport)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Erreur lors de la génération du rapport: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 
 
 logger = logging.getLogger(__name__)
 
 class PaiementEmployeViewSet(viewsets.ModelViewSet):
-    """ViewSet pour la gestion des paiements d'employés"""
+    """ViewSet pour la gestion des paiements d'employés (comptes entreprise uniquement)"""
     serializer_class = PaiementEmployeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [EntreprisePermission]
     pagination_class = CustomCursorPagination
     
     def get_queryset(self):
         """Retourner seulement les paiements de l'utilisateur connecté"""
-        queryset = PaiementEmploye.objects.filter(user=self.request.user).order_by('-date_paiement')
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return PaiementEmploye.objects.none()
         
+        queryset = PaiementEmploye.objects.filter(user=self.request.user).order_by('-date_paiement')
         # Filtre par employé si spécifié
         employe_id = self.request.query_params.get('employe_id')
         if employe_id:
             queryset = queryset.filter(id_employe_id=employe_id)
-            
         # Filtre par budget si spécifié
         budget_id = self.request.query_params.get('budget_id')
         if budget_id:
             queryset = queryset.filter(id_budget_id=budget_id)
-            
         return queryset
 
     @action(detail=False, methods=['post'])
@@ -883,13 +1227,17 @@ class PaiementEmployeViewSet(viewsets.ModelViewSet):
 
 
 class MontantSalaireViewSet(viewsets.ModelViewSet):
-    """ViewSet pour la gestion des montants de salaire"""
+    """ViewSet pour la gestion des montants de salaire (comptes entreprise uniquement)"""
     serializer_class = MontantSalaireSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [EntreprisePermission]
     pagination_class = CustomCursorPagination
     
     def get_queryset(self):
-        """Retourner seulement la configuration de l'utilisateur connecté"""
+        """Retourner seulement les montants de salaire de l'utilisateur connecté"""
+        # Éviter les erreurs lors de la génération du schéma Swagger
+        if getattr(self, 'swagger_fake_view', False):
+            return MontantSalaire.objects.none()
+        
         return MontantSalaire.objects.filter(user=self.request.user)
     
     def list(self, request, *args, **kwargs):
@@ -1495,3 +1843,40 @@ def global_financial_report(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({'error': 'Erreur interne du serveur'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def test_conseils_par_type(request):
+    """
+    Endpoint de test pour générer des conseils selon le type de compte
+    """
+    try:
+        from .tasks import generer_conseil_ia, generer_statistiques_budget
+        
+        # Récupérer le premier budget de l'utilisateur
+        budget = Budget.objects.filter(user=request.user).first()
+        
+        if not budget:
+            return Response(
+                {'error': 'Aucun budget trouvé pour cet utilisateur'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Générer des statistiques de test
+        stats = generer_statistiques_budget(budget, 'hebdomadaire')
+        
+        # Générer le conseil selon le type de compte
+        conseil = generer_conseil_ia(budget, stats, 'hebdomadaire')
+        
+        return Response({
+            'budget': budget.nom,
+            'type_compte': request.user.compte,
+            'conseil': conseil,
+            'statistiques': stats
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la génération du conseil: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
