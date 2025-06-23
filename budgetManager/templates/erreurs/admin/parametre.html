@@ -1,0 +1,373 @@
+{% extends 'accounts/base.html' %}
+{% block title %}
+  Paramètres
+{% endblock %}
+
+{% block content %}
+        <main class="p-4 md:p-6 pb-24">
+    <!-- Alert Banner -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 mb-6 rounded-md flex items-start">
+        <i data-feather="info" class="h-5 w-5 mr-2 mt-0.5"></i>
+        <div>
+            <h3 class="font-medium">Mode administrateur</h3>
+            <p class="text-sm mt-1">Attention, les modifications effectuées dans cette section peuvent affecter l'ensemble de la plateforme.</p>
+        </div>
+    </div>
+    
+    <!-- System Control Section -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Contrôle du système</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Platform Controls -->
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-gray-50 p-4 border-b border-gray-200">
+                    <h3 class="font-medium text-gray-700">Gestion de la plateforme</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <!-- Platform Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-medium text-gray-800">Activer/Désactiver la plateforme</h4>
+                            <p class="text-sm text-gray-500 mt-1">Désactiver met le système en mode maintenance</p>
+                        </div>
+                        <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle-platform" id="toggle-platform" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer right-0" checked/>
+                            <label for="toggle-platform" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                    </div>
+                    
+                    <!-- Maintenance Mode Settings -->
+                    <div>
+                        <label for="maintenance-message" class="block text-sm font-medium text-gray-700 mb-1">Message de maintenance</label>
+                        <textarea id="maintenance-message" rows="2" class="w-full p-2 border border-gray-300 rounded-md text-sm" placeholder="Message affiché pendant la maintenance">Nous effectuons actuellement une maintenance programmée. Merci de votre patience.</textarea>
+                    </div>
+                    
+                    <!-- Restart Platform -->
+                    <div>
+                        <button id="restart-platform" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm flex items-center">
+                            <i data-feather="refresh-cw" class="h-4 w-4 mr-2"></i>
+                            Redémarrer la plateforme
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Automation Controls -->
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-gray-50 p-4 border-b border-gray-200">
+                    <h3 class="font-medium text-gray-700">Gestion des automates</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <!-- Automation Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-medium text-gray-800">Activer/Désactiver les automates</h4>
+                            <p class="text-sm text-gray-500 mt-1">Désactiver arrête toutes les tâches automatiques</p>
+                        </div>
+                        <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle-automation" id="toggle-automation" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer right-0" checked/>
+                            <label for="toggle-automation" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                    </div>
+                    
+                    <!-- Scheduled Tasks -->
+                    <div>
+                        <h4 class="font-medium text-gray-800 mb-2">Tâches programmées</h4>
+                        <div class="max-h-32 overflow-y-auto">
+                            <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                                <div class="flex items-center">
+                                    <input type="checkbox" checked class="h-4 w-4 text-blue-600 rounded border-gray-300">
+                                    <span class="ml-2 text-sm text-gray-700">Sauvegarde automatique</span>
+                                </div>
+                                <span class="text-xs text-gray-500">04:00 quotidien</span>
+                            </div>
+                            <div class="flex items-center justify-between py-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" checked class="h-4 w-4 text-blue-600 rounded border-gray-300">
+                                    <span class="ml-2 text-sm text-gray-700">Génération des rapports</span>
+                                </div>
+                                <span class="text-xs text-gray-500">06:00 lundi</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advanced Settings -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-medium text-gray-800 mb-4">Paramètres avancés</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Security Settings -->
+            <div class="space-y-4">
+                <h3 class="font-medium text-gray-700 border-b border-gray-200 pb-2">Sécurité</h3>
+                
+                <!-- 2FA Requirement -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-800">Exiger 2FA pour tous</h4>
+                        <p class="text-sm text-gray-500 mt-1">Obligatoire pour les admins</p>
+                    </div>
+                    <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle-2fa" id="toggle-2fa" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer right-0" checked/>
+                        <label for="toggle-2fa" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                
+                <!-- Debug Mode -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-800">Mode débogage</h4>
+                        <p class="text-sm text-gray-500 mt-1">Active les logs détaillés</p>
+                    </div>
+                    <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle-debug" id="toggle-debug" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer right-0"/>
+                        <label for="toggle-debug" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Logs -->
+            <div class="space-y-4">
+                <h3 class="font-medium text-gray-700 border-b border-gray-200 pb-2">Logs système</h3>
+                <div class="bg-gray-50 p-3 rounded-md h-40 overflow-y-auto font-mono text-xs">
+                    <div class="text-green-600">[21/05/2025 08:14:32] INFO: Service démarré avec succès</div>
+                    <div class="text-blue-600">[21/05/2025 08:10:15] INFO: Sauvegarde automatique terminée</div>
+                    <div class="text-yellow-600">[21/05/2025 07:45:22] WARN: Utilisation CPU élevée (85%)</div>
+                    <div class="text-gray-600">[21/05/2025 06:30:10] INFO: Mise à jour des statistiques</div>
+                    <div class="text-red-600">[21/05/2025 04:12:56] ERROR: Échec connexion API externe</div>
+                </div>
+                <div class="flex justify-end">
+                    <button class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded-md text-sm">
+                        Voir tous les logs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+      <script>
+                // Toggle handlers
+            document.getElementById('toggle-platform').addEventListener('change', function() {
+                if(this.checked) {
+                    console.log('Plateforme activée');
+                    // Appel API pour activer la plateforme
+                } else {
+                    console.log('Plateforme désactivée - Mode maintenance activé');
+                    // Appel API pour désactiver la plateforme
+                }
+            });
+            
+            document.getElementById('toggle-automation').addEventListener('change', function() {
+                if(this.checked) {
+                    console.log('Automates activés');
+                    // Appel API pour activer les automates
+                } else {
+                    console.log('Automates désactivés');
+                    // Appel API pour désactiver les automates
+                }
+            });
+            
+            // Restart platform button
+            document.getElementById('restart-platform').addEventListener('click', function() {
+                if(confirm('Voulez-vous vraiment redémarrer la plateforme? Cela déconnectera tous les utilisateurs.')) {
+                    console.log('Redémarrage de la plateforme...');
+                    // Appel API pour redémarrer
+                }
+            });
+                // Initialize Feather Icons
+                feather.replace();
+                
+                // Mobile Menu Toggle
+                document.getElementById('sidebar-toggle').addEventListener('click', function() {
+                    document.getElementById('sidebar').classList.add('active');
+                    document.getElementById('overlay').classList.remove('hidden');
+                    document.getElementById('overlay').classList.add('active');
+                });
+                
+                document.getElementById('sidebar-close').addEventListener('click', function() {
+                    document.getElementById('sidebar').classList.remove('active');
+                    document.getElementById('overlay').classList.remove('active');
+                    document.getElementById('overlay').classList.add('hidden');
+                });
+                
+                document.getElementById('overlay').addEventListener('click', function() {
+                    document.getElementById('sidebar').classList.remove('active');
+                    document.getElementById('overlay').classList.remove('active');
+                    document.getElementById('overlay').classList.add('hidden');
+                });
+                
+                // Dropdowns
+                document.getElementById('notif-toggle').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    document.getElementById('notif-menu').classList.toggle('active');
+                    document.getElementById('profile-menu').classList.remove('active');
+                });
+                
+                document.getElementById('profile-toggle').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    document.getElementById('profile-menu').classList.toggle('active');
+                    document.getElementById('notif-menu').classList.remove('active');
+                });
+                
+                document.addEventListener('click', function() {
+                    document.getElementById('notif-menu').classList.remove('active');
+                    document.getElementById('profile-menu').classList.remove('active');
+                });
+                
+                // Charts
+                // Expenses Chart
+                const expensesChart = new Chart(
+                    document.getElementById('expenses-chart').getContext('2d'),
+                    {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                            datasets: [
+                                {
+                                    label: 'Dépenses',
+                                    data: [30500, 32400, 28900, 35200, 45320, 0, 0, 0, 0, 0, 0, 0],
+                                    borderColor: '#f87171',
+                                    backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                },
+                                {
+                                    label: 'Revenus',
+                                    data: [50200, 48300, 42100, 58400, 62145, 0, 0, 0, 0, 0, 0, 0],
+                                    borderColor: '#34d399',
+                                    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                                    fill: true,
+                                    tension: 0.4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        boxWidth: 10,
+                                        usePointStyle: true
+                                    }
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value / 1000 + ' k€';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                );
+                
+                // Category Pie Chart
+                const categoryChart = new Chart(
+                    document.getElementById('category-chart').getContext('2d'),
+                    {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['RH', 'Marketing', 'Développement', 'Locaux', 'Équipement'],
+                            datasets: [
+                                {
+                                    data: [32540, 8500, 15200, 13500, 5245],
+                                    backgroundColor: [
+                                        'rgba(168, 85, 247, 0.8)',
+                                        'rgba(59, 130, 246, 0.8)',
+                                        'rgba(16, 185, 129, 0.8)',
+                                        'rgba(245, 158, 11, 0.8)',
+                                        'rgba(99, 102, 241, 0.8)'
+                                    ]
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: 12,
+                                        usePointStyle: true
+                                    }
+                                }
+                            },
+                            cutout: '70%'
+                        }
+                    }
+                );
+                
+            
+            
+            
+            // Script pour la fonctionnalité des sous-menus 
+            document.addEventListener('DOMContentLoaded', function() {
+            // Initialiser Feather Icons
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+            
+            // Gestion des sous-menus
+            const submenus = document.querySelectorAll('.submenu-container');
+            
+            submenus.forEach(container => {
+                const toggle = container.querySelector('a');
+                const submenu = container.querySelector('.submenu');
+                
+                // Cacher tous les sous-menus au départ
+                submenu.style.display = 'none';
+                
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Toggle du sous-menu
+                    if (submenu.style.display === 'none') {
+                        submenu.style.display = 'block';
+                        // Changer l'icône pour indiquer que le menu est ouvert
+                        const icon = toggle.querySelector('[data-feather="chevron-down"]');
+                        if (icon) {
+                            icon.setAttribute('data-feather', 'chevron-up');
+                            if (typeof feather !== 'undefined') {
+                                feather.replace();
+                            }
+                        }
+                    } else {
+                        submenu.style.display = 'none';
+                        // Changer l'icône pour indiquer que le menu est fermé
+                        const icon = toggle.querySelector('[data-feather="chevron-up"]');
+                        if (icon) {
+                            icon.setAttribute('data-feather', 'chevron-down');
+                            if (typeof feather !== 'undefined') {
+                                feather.replace();
+                            }
+                        }
+                    }
+                });
+            });
+            
+
+            
+        });
+
+
+    </script>
+{% endblock %}

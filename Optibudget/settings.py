@@ -56,6 +56,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'Optibudget.middleware.CSRFExemptionMiddleware',
     'Optibudget.middleware.ClientKeyMiddleware',
     'accounts.middleware.DeviceDetectionMiddleware',
     'accounts.middleware.SecurityMiddleware',
@@ -221,12 +222,53 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://192.168.1.105:3000",
+]
+
 # Configuration CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
+    "http://192.168.1.105:3000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Paramètres CORS supplémentaires
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-client-key',
+]
+
+# Configuration CORS pour le développement (plus permissive)
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+
+# Exclusion CSRF pour les routes API
+CSRF_EXEMPT_URLS = [
+    r'^/api/accounts/password-reset/$',
+    r'^/api/accounts/register/$',
+    r'^/api/accounts/login/$',
+]

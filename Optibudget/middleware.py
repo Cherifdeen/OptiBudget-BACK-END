@@ -1,6 +1,33 @@
 from django.http import JsonResponse
 from django.urls import resolve
 from optibudget_admin.models import ClientKey
+import re
+from django.conf import settings
+from django.utils.deprecation import MiddlewareMixin
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.utils.functional import SimpleLazyObject
+from django.contrib.auth.models import AnonymousUser
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import AccessToken
+import json
+
+
+class CSRFExemptionMiddleware(MiddlewareMixin):
+    """Middleware pour exclure certaines routes de la protection CSRF"""
+    
+    def process_request(self, request):
+        # Vérifier si l'URL actuelle doit être exemptée de CSRF
+        if hasattr(settings, 'CSRF_EXEMPT_URLS'):
+            for pattern in settings.CSRF_EXEMPT_URLS:
+                if re.match(pattern, request.path):
+                    # Marquer la requête comme exemptée de CSRF
+                    request._dont_enforce_csrf_checks = True
+                    break
+        
+        return None
+
 
 class ClientKeyMiddleware:
     def __init__(self, get_response):
@@ -16,8 +43,7 @@ class ClientKeyMiddleware:
             'optibudget_admin:signup',
             'optibudget_admin:dashboardadmin',
             'optibudget_admin:parametre',
-            
-            
+            'accounts:password_reset_api',
         ]
 
         # URLs spéciales : clé obligatoire hors navigateur
@@ -28,9 +54,10 @@ class ClientKeyMiddleware:
             'accounts:login',
             'accounts:token_refresh',
             'accounts:user-choices',
-            
-            
-              
+            'accounts:register',
+            'accounts:password_reset_done',
+            'accounts:password_reset_complete',
+            'accounts:email_verifiation_success',
         ]
 
     def __call__(self, request):
@@ -38,6 +65,10 @@ class ClientKeyMiddleware:
         
         # Exclure l'admin (facultatif)
         if path.startswith('/admin/'):
+            return self.get_response(request)
+
+        # Exclure spécifiquement la route password-reset API
+        if path == '/api/accounts/password-reset/':
             return self.get_response(request)
 
         try:

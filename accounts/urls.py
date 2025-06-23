@@ -8,18 +8,25 @@ router = DefaultRouter()
 
 app_name = 'accounts'
 
-urlpatterns = [
+# URLs pour les templates (pages web)
+template_urlpatterns = [
+    # Vérification et réinitialisation (Templates)
+    path('verify-email/<uuid:token>/', views.EmailVerificationView.as_view(), name='verify_email'),
+    path('password-reset/', views.PasswordResetRequestTemplateView.as_view(), name='password_reset_request'),
+    path('password-reset/done/', views.PasswordResetDoneTemplateView.as_view(), name='password_reset_done'),
+    path('reset-password/<uidb64>/<token>/', views.PasswordResetConfirmTemplateView.as_view(), name='password_reset_confirm'),
+    path('reset-password/complete/', views.PasswordResetCompleteTemplateView.as_view(), name='password_reset_complete'),
+    path('email-verified/', views.EmailVerificationSuccessView.as_view(), name='email_verification_success'),
+]
+
+# URLs pour l'API  
+api_urlpatterns = [
     # Authentification JWT
     path('login/', views.CustomTokenObtainPairView.as_view(), name='login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('register/', views.UserRegistrationView.as_view(), name='register'),
-    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('logout/', views.UserLogoutView.as_view(), name='logout'),
     path('logout-all/', views.LogoutAllDevicesView.as_view(), name='logout_all'),
-    
-    # Vérification et réinitialisation
-    path('verify-email/<uuid:token>/', views.EmailVerificationView.as_view(), name='verify_email'),
-    path('password-reset/', views.PasswordResetRequestView.as_view(), name='password_reset_request'),
-    path('reset-password/<uuid:token>/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     
     # Profil utilisateur 
     path('profile/', views.UserProfileView.as_view(), name='profile'),
@@ -44,6 +51,12 @@ urlpatterns = [
     
     # Utilitaires
     path('choices/', views.UserChoicesView.as_view(), name='user-choices'),
+    
+    # Réinitialisation de mot de passe
+    path('password-reset/', views.PasswordResetAPIView.as_view(), name='password_reset_api'),
 ]
+
+# URLs combinées (pour compatibilité)
+urlpatterns = api_urlpatterns + template_urlpatterns
 
 # Optionnel: Ajouter des vues d'API documentation

@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+{% block title %}
+  Erreur 400
+{% endblock %}
+
+{% block content %}
+       <main class="md:ml-64 relative min-h-screen">
+        <!-- Navbar -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="flex items-center justify-between px-4 md:px-6 py-3">
+                <div class="flex items-center">
+                    <button id="sidebar-toggle" class="mr-4 text-gray-600 md:hidden">
+                        <i data-feather="menu" class="h-6 w-6"></i>
+                    </button>
+                    <h1 class="text-lg md:text-xl font-bold text-gray-800">Tableau de bord</h1>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <div class="relative hidden md:block">
+                        <input type="text" placeholder="Rechercher..." class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-40 lg:w-64">
+                        <i data-feather="search" class="absolute top-2.5 right-3 h-4 w-4 text-gray-400"></i>
+                    </div>
+                    
+                    <!-- Notifications Dropdown -->
+                    <div class="relative">
+                        <button id="notif-toggle" class="text-gray-600 focus:outline-none p-1.5 rounded-full hover:bg-gray-100">
+                            <div class="relative">
+                                <i data-feather="bell" class="h-5 w-5"></i>
+                                <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-4 w-4 flex items-center justify-center text-xs">3</span>
+                            </div>
+                        </button>
+                        
+                        <!-- Notifications Dropdown Menu -->
+                        <div id="notif-menu" class="dropdown-menu absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg overflow-hidden z-30">
+                            <div class="p-3 border-b border-gray-200 flex justify-between items-center">
+                                <span class="font-medium text-gray-800">Notifications</span>
+                                <a href="#" class="text-blue-500 text-xs hover:underline">Marquer comme lues</a>
+                            </div>
+                            <div class="max-h-80 overflow-y-auto">
+                                <a href="#" class="block p-3 hover:bg-gray-50 border-b border-gray-100">
+                                    <div class="flex items-start">
+                                        <div class="bg-blue-100 p-2 rounded-full">
+                                            <i data-feather="dollar-sign" class="h-4 w-4 text-blue-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-gray-800">Paiement reçu</p>
+                                            <p class="text-xs text-gray-500">Tech Solutions Inc. a effectué un paiement de 8 750 €</p>
+                                            <p class="text-xs text-gray-400 mt-1">Il y a 3 heures</p>
+                                        </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block p-3 hover:bg-gray-50 border-b border-gray-100">
+                                    <div class="flex items-start">
+                                        <div class="bg-red-100 p-2 rounded-full">
+                                            <i data-feather="alert-circle" class="h-4 w-4 text-red-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-gray-800">Budget dépassé</p>
+                                            <p class="text-xs text-gray-500">Le budget RH est à 93% de sa capacité</p>
+                                            <p class="text-xs text-gray-400 mt-1">Il y a 5 heures</p>
+                                        </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block p-3 hover:bg-gray-50">
+                                    <div class="flex items-start">
+                                        <div class="bg-green-100 p-2 rounded-full">
+                                            <i data-feather="check-circle" class="h-4 w-4 text-green-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-gray-800">Rapports mensuels prêts</p>
+                                            <p class="text-xs text-gray-500">Les rapports financiers de mai sont disponibles</p>
+                                            <p class="text-xs text-gray-400 mt-1">Il y a 8 heures</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="p-3 bg-gray-50 text-center border-t border-gray-100">
+                                <a href="#" class="text-blue-500 text-sm hover:underline">Voir toutes les notifications</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Profile Dropdown -->
+                    <div class="relative">
+                        <button id="profile-toggle" class="flex items-center space-x-2 focus:outline-none hover:bg-gray-100 p-1.5 rounded-full">
+                            <img src="/api/placeholder/40/40" alt="Avatar" class="h-7 w-7 rounded-full object-cover">
+                            <i data-feather="chevron-down" class="h-4 w-4 text-gray-500 hidden md:block"></i>
+                        </button>
+                        
+                        <!-- Profile Dropdown Menu -->
+                        <div id="profile-menu" class="dropdown-menu absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg overflow-hidden z-30">
+                            <div class="p-3 border-b border-gray-200">
+                                <p class="font-medium text-gray-800">Entreprise ABC</p>
+                                <p class="text-xs text-gray-500">Administrateur</p>
+                            </div>
+                            <a href="#" class="block p-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
+                                <i data-feather="user" class="h-4 w-4 mr-2 text-gray-500"></i>
+                                Mon profil
+                            </a>
+                            <a href="#" class="block p-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
+                                <i data-feather="settings" class="h-4 w-4 mr-2 text-gray-500"></i>
+                                Paramètres
+                            </a>
+                            <a href="#" class="block p-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
+                                <i data-feather="help-circle" class="h-4 w-4 mr-2 text-gray-500"></i>
+                                Aide & Support
+                            </a>
+                            <div class="border-t border-gray-100">
+                                <a href="#" class="block p-3 text-sm text-red-600 hover:bg-gray-50 flex items-center">
+                                    <i data-feather="log-out" class="h-4 w-4 mr-2 text-red-500"></i>
+                                    Déconnexion
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Search -->
+            <div class="px-4 pb-3 md:hidden">
+                <div class="relative">
+                    <input type="text" placeholder="Rechercher..." class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full">
+                    <i data-feather="search" class="absolute top-2.5 right-3 h-4 w-4 text-gray-400"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+       
+       
+
+        <div class="content-wrapper">
+            <div class="container mx-auto px-4 py-12">
+                <!-- Error Container - 400 Bad Request -->
+                <div id="error-400" class="error-container bg-white rounded-lg shadow-lg max-w-4xl mx-auto mb-8">
+                    <div class="p-8 md:p-12">
+                        <div class="flex flex-col md:flex-row items-center">
+                            <div class="mb-6 md:mb-0 md:mr-10 flex-shrink-0">
+                                <div class="bg-yellow-100 p-6 rounded-full pulse-animation">
+                                    <i data-feather="alert-triangle" class="h-14 w-14 text-yellow-500"></i>
+                                </div>
+                            </div>
+                            <div class="text-center md:text-left">
+                                <div class="flex items-center justify-center md:justify-start mb-4">
+                                    <h1 class="text-4xl font-bold text-gray-800">400</h1>
+                                    <div class="ml-4 pl-4 border-l-2 border-gray-200">
+                                        <h2 class="text-xl font-medium text-gray-700">Bad Request</h2>
+                                        <p class="text-gray-500 mt-1">Requête incorrecte</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 mb-6 text-lg">La requête envoyée au serveur est incorrecte ou corrompue et ne peut pas être traitée.</p>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                                    <h3 class="font-medium text-gray-800 mb-2">Causes possibles :</h3>
+                                    <ul class="text-gray-600 space-y-1 list-disc pl-5">
+                                        <li>Paramètres de requête invalides ou manquants</li>
+                                        <li>Format de données incorrect</li>
+                                        <li>En-têtes HTTP mal formés</li>
+                                        <li>Cookies corrompus</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="bg-blue-50 p-4 rounded-lg mb-6 border-l-4 border-blue-500">
+                                    <h3 class="font-medium text-blue-800 mb-2">Solutions recommandées :</h3>
+                                    <ul class="text-blue-700 space-y-1 list-disc pl-5">
+                                        <li>Vérifiez les paramètres de votre requête</li>
+                                        <li>Assurez-vous que les données sont au bon format (JSON, XML, etc.)</li>
+                                        <li>Essayez de vider le cache de votre navigateur</li>
+                                        <li>Si le problème persiste, contactez le support technique</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+                                    <a href="#" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center">
+                                        <i data-feather="arrow-left" class="h-4 w-4 mr-2"></i>
+                                        Retour à l'accueil
+                                    </a>
+                                    <a href="#" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition-colors flex items-center">
+                                        <i data-feather="refresh-cw" class="h-4 w-4 mr-2"></i>
+                                        Actualiser la page
+                                    </a>
+                                    <a href="#" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition-colors flex items-center">
+                                        <i data-feather="help-circle" class="h-4 w-4 mr-2"></i>
+                                        Support technique
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 rounded-b-lg">
+                        <div class="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+                            <p>Code d'erreur: <span class="font-mono">400_BAD_REQUEST</span></p>
+                            <p class="mt-2 md:mt-0">ID Technique: <span class="font-mono">ERR-400-12345</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </div>
+        </div>
+
+
+
+        <!-- Footer -->
+        <footer class="px-4 md:px-6 py-4 border-t border-gray-200">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="text-gray-500 text-sm mb-2 md:mb-0">© 2025 OptiBudget. Tous droits réservés.</div>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-500 text-sm hover:text-blue-500">Confidentialité</a>
+                    <a href="#" class="text-gray-500 text-sm hover:text-blue-500">Conditions</a>
+                    <a href="#" class="text-gray-500 text-sm hover:text-blue-500">Contact</a>
+                </div>
+            </div>
+        </footer>
+    </main>
+     <script>
+        // Initialize Feather Icons
+        feather.replace();
+        
+        // Mobile Menu Toggle
+        document.getElementById('sidebar-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('overlay').classList.remove('hidden');
+            document.getElementById('overlay').classList.add('active');
+        });
+        
+        document.getElementById('sidebar-close').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('overlay').classList.add('hidden');
+        });
+        
+        document.getElementById('overlay').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('overlay').classList.add('hidden');
+        });
+        
+        // Dropdowns
+        document.getElementById('notif-toggle').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('notif-menu').classList.toggle('active');
+            document.getElementById('profile-menu').classList.remove('active');
+        });
+        
+        document.getElementById('profile-toggle').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('profile-menu').classList.toggle('active');
+            document.getElementById('notif-menu').classList.remove('active');
+        });
+        
+        document.addEventListener('click', function() {
+            document.getElementById('notif-menu').classList.remove('active');
+            document.getElementById('profile-menu').classList.remove('active');
+        });
+        
+        // Charts
+        // Expenses Chart
+        const expensesChart = new Chart(
+            document.getElementById('expenses-chart').getContext('2d'),
+            {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                    datasets: [
+                        {
+                            label: 'Dépenses',
+                            data: [30500, 32400, 28900, 35200, 45320, 0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#f87171',
+                            backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Revenus',
+                            data: [50200, 48300, 42100, 58400, 62145, 0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#34d399',
+                            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value / 1000 + ' k€';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        
+        // Category Pie Chart
+        const categoryChart = new Chart(
+            document.getElementById('category-chart').getContext('2d'),
+            {
+                type: 'doughnut',
+                data: {
+                    labels: ['RH', 'Marketing', 'Développement', 'Locaux', 'Équipement'],
+                    datasets: [
+                        {
+                            data: [32540, 8500, 15200, 13500, 5245],
+                            backgroundColor: [
+                                'rgba(168, 85, 247, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(99, 102, 241, 0.8)'
+                            ]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                usePointStyle: true
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            }
+        );
+        
+    
+    
+    
+            // Script pour la fonctionnalité des sous-menus 
+            document.addEventListener('DOMContentLoaded', function() {
+            // Initialiser Feather Icons
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+            
+            // Gestion des sous-menus
+            const submenus = document.querySelectorAll('.submenu-container');
+            
+            submenus.forEach(container => {
+                const toggle = container.querySelector('a');
+                const submenu = container.querySelector('.submenu');
+                
+                // Cacher tous les sous-menus au départ
+                submenu.style.display = 'none';
+                
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Toggle du sous-menu
+                    if (submenu.style.display === 'none') {
+                        submenu.style.display = 'block';
+                        // Changer l'icône pour indiquer que le menu est ouvert
+                        const icon = toggle.querySelector('[data-feather="chevron-down"]');
+                        if (icon) {
+                            icon.setAttribute('data-feather', 'chevron-up');
+                            if (typeof feather !== 'undefined') {
+                                feather.replace();
+                            }
+                        }
+                    } else {
+                        submenu.style.display = 'none';
+                        // Changer l'icône pour indiquer que le menu est fermé
+                        const icon = toggle.querySelector('[data-feather="chevron-up"]');
+                        if (icon) {
+                            icon.setAttribute('data-feather', 'chevron-down');
+                            if (typeof feather !== 'undefined') {
+                                feather.replace();
+                            }
+                        }
+                    }
+                });
+            });
+            
+
+            
+        });
+
+
+    </script>
+{% endblock %}

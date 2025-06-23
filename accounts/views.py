@@ -3,7 +3,14 @@ from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib import messages
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.views import PasswordResetView as DjangoPasswordResetView
+from django.contrib.auth.views import PasswordResetDoneView as DjangoPasswordResetDoneView
+from django.contrib.auth.views import PasswordResetConfirmView as DjangoPasswordResetConfirmView
+from django.contrib.auth.views import PasswordResetCompleteView as DjangoPasswordResetCompleteView
+from django.urls import reverse_lazy
 from rest_framework import status, permissions, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -17,7 +24,7 @@ from tasks.sendMail import send_email_task
 from Optibudget.settings import DEFAULT_FROM_EMAIL
 from django.contrib.auth.models import User
 from django.utils.crypto import get_random_string
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
@@ -28,15 +35,20 @@ from django.utils.html import strip_tags
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from Optibudget.swagger_config import JWT_SECURITY
-
+from .utils import send_password_reset_request_email, send_password_reset_success_email, send_password_changed_email
+from django import forms
+from django.views.generic import TemplateView
+from rest_framework.permissions import AllowAny
 from .models import CustomUser, UserPreferences, UserDevice, LoginAttempt
 from .serializers import (
     CustomUserSerializer, UserRegistrationSerializer,
-    UserProfileSerializer,
-    UserListSerializer, UserPreferencesSerializer, UserPreferencesUpdateSerializer,
+    UserProfileSerializer, UserPreferencesSerializer,
+    UserListSerializer, UserPreferencesUpdateSerializer,
     UserChoicesSerializer, CustomTokenObtainPairSerializer, DeviceRegistrationSerializer,
     ChangePasswordSerializer, EmailVerificationSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer, LoginAttemptSerializer, UserDeviceSerializer
 )
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -94,20 +106,15 @@ class UserRegistrationView(generics.CreateAPIView):
     def send_verification_email(self, user):
         """Envoie un email de vérification"""
         subject = 'Vérifiez votre adresse email - Optibudget'
-        html_message = render_to_string('accounts/email_verification.html', {
+        html_message = render_to_string('emails/email_verification.html', {
             'user': user,
             'verification_url': f"{self.request.scheme}://{self.request.get_host()}/api/accounts/verify-email/{user.email_verification_token}/"
         })
         plain_message = strip_tags(html_message)
         
-        send_mail(
-            subject,
-            plain_message,
-            DEFAULT_FROM_EMAIL,
-            [user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+        email = EmailMessage(subject, html_message, DEFAULT_FROM_EMAIL, [user.email])
+        email.content_subtype = 'html'
+        email.send()
 
 
 class UserLoginView(APIView):
@@ -117,10 +124,18 @@ class UserLoginView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def post(self, request):
-        serializer = UserLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        if not email or not password:
+            return Response({
+                'error': 'Email et mot de passe requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Authentification
+        user = authenticate(email=email, password=password)
+        
+        if user:
             # Connexion de l'utilisateur
             login(request, user)
             
@@ -134,8 +149,10 @@ class UserLoginView(APIView):
             }
             
             return Response(response_data, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({
+                'error': 'Email ou mot de passe incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLogoutView(APIView):
@@ -495,24 +512,9 @@ def password_reset_request(request):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         
-        # Envoi de l'email (à adapter selon votre configuration)
-        reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}/"
-
-
-
-        """
-
-        Redis celery
-
-        """
-
-
-        send_email_task.delay(
-            subject='Réinitialisation de mot de passe',
-            message=f'Cliquez sur le lien suivant pour réinitialiser votre mot de passe : {reset_url}',
-            from_email=DEFAULT_FROM_EMAIL,
-            recipient_list=[email]
-        )
+        # Envoi de l'email avec notre fonction personnalisée
+        reset_url = f"{self.request.scheme}://{self.request.get_host()}/accounts/reset-password/{uid}/{token}/"
+        send_password_reset_request_email(user, reset_url)
         
         return Response({
             'message': 'Un email de réinitialisation a été envoyé'
@@ -557,12 +559,10 @@ def password_reset_confirm(request, uidb64, token):
         
         user.set_password(new_password)
         user.save()
-        send_email_task.delay(
-            subject='Mot de passe réinitialisé',
-            message='Votre mot de passe a été réinitialisé avec succès.',
-            from_email=DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email]
-        )
+        
+        # Envoyer l'email de confirmation avec template HTML
+        send_password_reset_success_email(user)
+        
         return Response({
             'message': 'Mot de passe réinitialisé avec succès'
         })
@@ -583,10 +583,7 @@ class EmailVerificationView(APIView):
             user.is_email_verified = True
             user.email_verification_token = uuid.uuid4()
             user.save()
-            
-            return Response({
-                'message': 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.'
-            }, status=status.HTTP_200_OK)
+            return redirect('accounts:email_verification_success')
         except CustomUser.DoesNotExist:
             return Response({
                 'error': 'Token de vérification invalide.'
@@ -688,11 +685,6 @@ class PasswordResetRequestView(APIView):
             try:
                 user = CustomUser.objects.get(email=email)
                 
-                # Générer un token de réinitialisation
-                reset_token = get_random_string(64)
-                user.email_verification_token = uuid.uuid4()
-                user.save()
-                
                 # Envoyer l'email de réinitialisation
                 self.send_reset_email(user)
                 
@@ -702,81 +694,85 @@ class PasswordResetRequestView(APIView):
             except CustomUser.DoesNotExist:
                 # Ne pas révéler si l'email existe ou non
                 return Response({
-                    'message': 'Un email de réinitialisation a été envoyé.'
-                }, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    def send_reset_email(self, user):
-        """Envoie un email de réinitialisation de mot de passe"""
-        subject = 'Réinitialisation de mot de passe - Optibudget'
-        html_message = render_to_string('accounts/password_reset.html', {
-            'user': user,
-            'reset_url': f"{self.request.scheme}://{self.request.get_host()}/api/accounts/reset-password/{user.email_verification_token}/"
+                    'message': 'Si cet email existe, un lien de réinitialisation a été envoyé.'
+                })
+
+
+# ============================================================================
+# VUES DJANGO CLASSIQUES POUR LA RÉINITIALISATION DE MOT DE PASSE
+# ============================================================================
+
+class PasswordResetRequestForm(forms.Form):
+    """Formulaire personnalisé pour la demande de réinitialisation de mot de passe"""
+    email = forms.EmailField(
+        label='Adresse email',
+        widget=forms.EmailInput(attrs={
+            'class': 'pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring focus:ring-blue-200',
+            'placeholder': 'votre@email.com'
         })
-        plain_message = strip_tags(html_message)
-        
-        send_mail(
-            subject,
-            plain_message,
-            DEFAULT_FROM_EMAIL,
-            [user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+    )
 
 
-class PasswordResetConfirmView(APIView):
-    """Vue pour confirmer la réinitialisation de mot de passe"""
-    permission_classes = [permissions.AllowAny]
+class PasswordResetRequestTemplateView(DjangoPasswordResetView):
+    """Vue pour demander une réinitialisation de mot de passe (template)"""
+    template_name = 'accounts/password_reset_request.html'
+    email_template_name = 'emails/password_reset.html'
+    subject_template_name = 'emails/password_reset_subject.txt'
+    success_url = reverse_lazy('accounts:password_reset_done')
+    form_class = PasswordResetRequestForm
     
-    def post(self, request, token):
-        serializer = PasswordResetConfirmSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                user = CustomUser.objects.get(email_verification_token=token)
-                user.set_password(serializer.validated_data['new_password'])
-                user.email_verification_token = uuid.uuid4()
-                user.save()
-                
-                return Response({
-                    'message': 'Mot de passe réinitialisé avec succès.'
-                }, status=status.HTTP_200_OK)
-            except CustomUser.DoesNotExist:
-                return Response({
-                    'error': 'Token de réinitialisation invalide.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class LoginAttemptsView(generics.ListAPIView):
-    """Vue pour lister les tentatives de connexion"""
-    serializer_class = LoginAttemptSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        return LoginAttempt.objects.filter(user=self.request.user)[:50]
-
-
-class LogoutView(APIView):
-    """Vue pour la déconnexion"""
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def post(self, request):
+    def form_valid(self, form):
+        """Override pour utiliser notre modèle CustomUser"""
+        email = form.cleaned_data['email']
         try:
-            refresh_token = request.data.get('refresh_token')
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
+            user = CustomUser.objects.get(email=email)
+            # Générer un token de réinitialisation
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
             
-            return Response({
-                'message': 'Déconnexion réussie.'
-            }, status=status.HTTP_200_OK)
-        except Exception:
-            return Response({
-                'message': 'Déconnexion réussie.'
-            }, status=status.HTTP_200_OK)
+            # Envoyer l'email avec notre fonction personnalisée
+            reset_url = f"{self.request.scheme}://{self.request.get_host()}/accounts/reset-password/{uid}/{token}/"
+            send_password_reset_request_email(user, reset_url)
+            
+            messages.success(self.request, 'Un email de réinitialisation a été envoyé à votre adresse email.')
+        except CustomUser.DoesNotExist:
+            # Pour des raisons de sécurité, on ne révèle pas si l'email existe
+            messages.success(self.request, 'Si cet email existe, un lien de réinitialisation a été envoyé.')
+        
+        return super().form_valid(form)
+
+
+class PasswordResetDoneTemplateView(DjangoPasswordResetDoneView):
+    """Vue pour afficher la confirmation d'envoi d'email"""
+    template_name = 'accounts/password_reset_done.html'
+
+
+class PasswordResetConfirmTemplateView(DjangoPasswordResetConfirmView):
+    """Vue pour confirmer la réinitialisation de mot de passe (template)"""
+    template_name = 'accounts/password_reset_confirm.html'
+    success_url = reverse_lazy('accounts:password_reset_complete')
+    form_class = SetPasswordForm
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['validlink'] = self.validlink
+        return context
+    
+    def form_valid(self, form):
+        """Override pour utiliser notre modèle CustomUser et envoyer l'email de confirmation"""
+        user = form.user
+        form.save()
+        
+        # Envoyer l'email de confirmation
+        send_password_reset_success_email(user)
+        
+        messages.success(self.request, 'Votre mot de passe a été réinitialisé avec succès.')
+        return super().form_valid(form)
+
+
+class PasswordResetCompleteTemplateView(DjangoPasswordResetCompleteView):
+    """Vue pour afficher la confirmation de réinitialisation complète"""
+    template_name = 'accounts/password_reset_complete.html'
 
 
 class LogoutAllDevicesView(APIView):
@@ -800,19 +796,60 @@ class LogoutAllDevicesView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class LoginAttemptsView(generics.ListAPIView):
+    """Vue pour lister les tentatives de connexion"""
+    serializer_class = LoginAttemptSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return LoginAttempt.objects.filter(user=self.request.user)[:50]
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def user_stats(request):
     """Vue pour les statistiques utilisateur"""
     user = request.user
-    
+
     stats = {
         'total_devices': user.devices.filter(is_active=True).count(),
         'trusted_devices': user.devices.filter(is_active=True, is_trusted=True).count(),
-        'failed_login_attempts': user.failed_login_attempts,
-        'is_account_locked': user.is_account_locked(),
-        'last_activity': user.last_activity,
-        'is_email_verified': user.is_email_verified,
+        'failed_login_attempts': getattr(user, 'failed_login_attempts', 0),
+        'is_account_locked': getattr(user, 'is_account_locked', lambda: False)(),
+        'last_activity': getattr(user, 'last_activity', None),
+        'is_email_verified': getattr(user, 'is_email_verified', False),
     }
-    
+
     return Response(stats)
+
+
+class EmailVerificationSuccessView(TemplateView):
+    template_name = 'accounts/email_verification_success.html'
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class PasswordResetAPIView(APIView):
+    permission_classes = [permissions.AllowAny]  # Permettre l'accès sans authentification
+    authentication_classes = []  # Pas d'authentification session/token
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email requis'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({'message': 'Si un compte avec cet email existe, un email de réinitialisation a été envoyé.'}, status=status.HTTP_200_OK)
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_url = f"{request.scheme}://{request.get_host()}/reset-password/{uid}/{token}/"
+        subject = 'Réinitialisation de votre mot de passe - OptiBudget'
+        html_message = render_to_string('emails/password_reset_request.html', {'user': user, 'reset_url': reset_url})
+        plain_message = strip_tags(html_message)
+        try:
+            email = EmailMessage(subject, html_message, settings.DEFAULT_FROM_EMAIL, [email])
+            email.content_subtype = 'html'
+            email.send()
+            return Response({'message': 'Email de réinitialisation envoyé avec succès.', 'redirect_url': '/password-reset/done/'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': "Erreur lors de l'envoi de l'email"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

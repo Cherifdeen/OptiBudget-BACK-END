@@ -1,0 +1,340 @@
+{% extends 'accounts/base.html' %}
+{% block title %}
+  S'inscrire
+{% endblock %}
+
+{% block content %}
+ <main class="flex-grow flex items-center justify-center py-10 px-4">
+        <div class="max-w-6xl w-full mx-auto flex flex-col md:flex-row shadow-xl rounded-xl overflow-hidden">
+            <!-- Left Side - Signup Form -->
+            <div class="w-full md:w-1/2 bg-white p-8 md:p-12">
+                <div class="mb-8">
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Rejoignez OptiBudget</h1>
+                    <p class="text-gray-600">Commencez à gérer vos finances d'entreprise efficacement</p>
+                </div>
+                
+                <!-- Progress Indicator -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center">
+                        <div class="flex flex-col items-center">
+                            <div class="h-8 w-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                            <span class="text-xs mt-1 text-blue-600 font-medium">Inscription</span>
+                        </div>
+                        <div class="flex-1 h-1 mx-2 bg-gray-200">
+                            <div class="h-full bg-blue-600 w-0"></div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="h-8 w-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                            <span class="text-xs mt-1 text-gray-500">Détails</span>
+                        </div>
+                        <div class="flex-1 h-1 mx-2 bg-gray-200">
+                            <div class="h-full bg-blue-600 w-0"></div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <div class="h-8 w-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+                            <span class="text-xs mt-1 text-gray-500">Confirmation</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Signup Form -->
+                <form id="signup-form" class="space-y-6">
+                    <!-- Company Details -->
+                    <div>
+                        <label for="company-name" class="block text-sm font-medium text-gray-700 mb-1">Nom de l'entreprise</label>
+                        <div class="relative">
+                            <div class="absolute left-3 top-3 text-gray-400">
+                                <i data-feather="briefcase" class="h-5 w-5"></i>
+                            </div>
+                            <input id="company-name" type="text" class="form-input pl-10 w-full p-3 border border-gray-300 rounded-lg focus:outline-none" placeholder="Votre entreprise">
+                        </div>
+                    </div>
+                    
+                    <!-- Email Address -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Adresse e-mail professionnelle</label>
+                        <div class="relative">
+                            <div class="absolute left-3 top-3 text-gray-400">
+                                <i data-feather="mail" class="h-5 w-5"></i>
+                            </div>
+                            <input id="email" type="email" class="form-input pl-10 w-full p-3 border border-gray-300 rounded-lg focus:outline-none" placeholder="vous@entreprise.com">
+                        </div>
+                    </div>
+                    
+                    <!-- Password -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                        <div class="relative">
+                            <div class="absolute left-3 top-3 text-gray-400">
+                                <i data-feather="lock" class="h-5 w-5"></i>
+                            </div>
+                            <input id="password" type="password" class="form-input pl-10 w-full p-3 border border-gray-300 rounded-lg focus:outline-none" placeholder="8 caractères minimum">
+                            <button type="button" id="toggle-password" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                                <i data-feather="eye" class="h-5 w-5"></i>
+                            </button>
+                        </div>
+                        <div class="mt-2 flex space-x-2">
+                            <div class="h-1 flex-1 rounded-full bg-gray-200">
+                                <div id="pwd-strength" class="h-full w-0 rounded-full bg-red-400 transition-all duration-300"></div>
+                            </div>
+                            <span id="pwd-text" class="text-xs text-gray-500">Faible</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Confirm Password -->
+                    <div>
+                        <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-1">Confirmer le mot de passe</label>
+                        <div class="relative">
+                            <div class="absolute left-3 top-3 text-gray-400">
+                                <i data-feather="check-circle" class="h-5 w-5"></i>
+                            </div>
+                            <input id="confirm-password" type="password" class="form-input pl-10 w-full p-3 border border-gray-300 rounded-lg focus:outline-none" placeholder="Confirmez votre mot de passe">
+                        </div>
+                    </div>
+                    
+                    <!-- Terms and Conditions -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="terms" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="terms" class="text-gray-600">
+                                J'accepte les <a href="#" class="text-blue-600 hover:underline">Conditions d'utilisation</a> et la <a href="#" class="text-blue-600 hover:underline">Politique de confidentialité</a>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                            Continuer
+                        </button>
+                    </div>
+                    
+                    <!-- Login Link -->
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600">
+                            Déjà un compte? <a href="#" class="text-blue-600 hover:underline font-medium">Se connecter</a>
+                        </p>
+                    </div>
+                </form>
+                
+                <!-- Social Signup Options -->
+                <div class="mt-8">
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500">Ou s'inscrire avec</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 grid grid-cols-2 gap-3">
+                        <a href="#" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                            <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="#4285F4" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21.8055 10.0415H21V10H12V14H17.6515C16.827 16.3285 14.6115 18 12 18C8.6865 18 6 15.3135 6 12C6 8.6865 8.6865 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C6.4775 2 2 6.4775 2 12C2 17.5225 6.4775 22 12 22C17.5225 22 22 17.5225 22 12C22 11.3295 21.931 10.675 21.8055 10.0415Z"/>
+                                <path d="M3.15302 7.3455L6.43851 9.755C7.32752 7.554 9.48052 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C8.15902 2 4.82802 4.1685 3.15302 7.3455Z" fill="#EA4335"/>
+                                <path d="M12 22C14.583 22 16.93 21.0115 18.7045 19.404L15.6145 16.785C14.5778 17.5742 13.3118 18.001 12 18C9.39897 18 7.19047 16.3415 6.35847 14.027L3.09747 16.5395C4.75247 19.778 8.11347 22 12 22Z" fill="#34A853"/>
+                                <path d="M21.8055 10.0415H21V10H12V14H17.6515C17.2571 15.1082 16.5467 16.0766 15.608 16.7855L15.6145 16.7845L18.7045 19.4035C18.4855 19.6025 22 17 22 12C22 11.3295 21.931 10.675 21.8055 10.0415Z" fill="#4285F4"/>
+                            </svg>
+                            Google
+                        </a>
+                        
+                        <a href="#" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                            <svg class="h-5 w-5 mr-2" fill="#0077B5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                            LinkedIn
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Side - Benefits Banner -->
+            <div class="hidden md:block w-1/2 bg-gradient-to-br from-blue-800 to-blue-900 p-12 text-white relative overflow-hidden">
+                <div class="relative z-10">
+                    <h2 class="text-3xl font-bold mb-6">Gérez vos finances en toute simplicité</h2>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-10 w-10 bg-blue-700 rounded-full flex items-center justify-center">
+                                <i data-feather="bar-chart-2" class="h-5 w-5"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold">Analyse financière avancée</h3>
+                                <p class="text-blue-100 mt-1">Visualisez vos performances financières avec des graphiques interactifs et des rapports détaillés.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-10 w-10 bg-blue-700 rounded-full flex items-center justify-center">
+                                <i data-feather="trending-up" class="h-5 w-5"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold">Suivi budgétaire en temps réel</h3>
+                                <p class="text-blue-100 mt-1">Surveillez vos dépenses et recettes en temps réel pour optimiser votre trésorerie.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-10 w-10 bg-blue-700 rounded-full flex items-center justify-center">
+                                <i data-feather="users" class="h-5 w-5"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold">Gestion des ressources</h3>
+                                <p class="text-blue-100 mt-1">Simplifiez la gestion des salaires et des dépenses liées aux employés.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-10 pt-6 border-t border-blue-700">
+                        <div class="text-lg font-bold mb-4">Ce que disent nos clients</div>
+                        
+                        <div class="bg-blue-800 bg-opacity-50 p-4 rounded-lg">
+                            <p class="italic text-blue-100">"OptiBudget a révolutionné notre façon de gérer les finances. Nous avons gagné en productivité et en clarté dans notre prise de décision."</p>
+                            <div class="mt-3 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                                    <span class="font-bold">ML</span>
+                                </div>
+                                <div class="ml-2">
+                                    <div class="font-medium">Marie Laurent</div>
+                                    <div class="text-xs text-blue-200">Directrice Financière, Tech Solutions Inc</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Background Elements -->
+                <div class="absolute top-0 right-0 w-full h-full opacity-10">
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <defs>
+                            <pattern id="grid" width="8" height="8" patternUnits="userSpaceOnUse">
+                                <path d="M 8 0 L 0 0 0 8" fill="none" stroke="white" stroke-width="0.5"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                    </svg>
+                </div>
+                
+                <div class="absolute -bottom-20 -right-20 h-64 w-64 bg-blue-600 rounded-full opacity-20"></div>
+                <div class="absolute top-10 -left-20 h-40 w-40 bg-blue-600 rounded-full opacity-20"></div>
+            </div>
+        </div>
+    </main>
+
+<script>
+        // Initialize Feather Icons
+        feather.replace();
+        
+        // Toggle password visibility
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.setAttribute('data-feather', 'eye-off');
+            } else {
+                passwordInput.type = 'password';
+                icon.setAttribute('data-feather', 'eye');
+            }
+            
+            feather.replace();
+        });
+        
+        // Simple password strength checker
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            const strengthBar = document.getElementById('pwd-strength');
+            const strengthText = document.getElementById('pwd-text');
+            
+            // Calculate strength
+            let strength = 0;
+            if (password.length >= 8) strength += 25;
+            if (password.match(/[A-Z]/)) strength += 25;
+            if (password.match(/[0-9]/)) strength += 25;
+            if (password.match(/[^A-Za-z0-9]/)) strength += 25;
+            
+            // Update UI
+            strengthBar.style.width = strength + '%';
+            
+            // Change color based on strength
+            if (strength <= 25) {
+                strengthBar.className = 'h-full rounded-full bg-red-500 transition-all duration-300';
+                strengthText.textContent = 'Faible';
+                strengthText.className = 'text-xs text-red-500';
+            } else if (strength <= 50) {
+                strengthBar.className = 'h-full rounded-full bg-yellow-500 transition-all duration-300';
+                strengthText.textContent = 'Moyen';
+                strengthText.className = 'text-xs text-yellow-500';
+            } else if (strength <= 75) {
+                strengthBar.className = 'h-full rounded-full bg-blue-500 transition-all duration-300';
+                strengthText.textContent = 'Bon';
+                strengthText.className = 'text-xs text-blue-500';
+            } else {
+                strengthBar.className = 'h-full rounded-full bg-green-500 transition-all duration-300';
+                strengthText.textContent = 'Excellent';
+                strengthText.className = 'text-xs text-green-500';
+            }
+        });
+        
+        // Form validation
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const companyName = document.getElementById('company-name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const terms = document.getElementById('terms').checked;
+            
+            // Simple validation
+            let valid = true;
+            
+            if (!companyName) {
+                valid = false;
+                // Add error styling
+                document.getElementById('company-name').classList.add('border-red-500');
+            }
+            
+            if (!email || !email.includes('@')) {
+                valid = false;
+                document.getElementById('email').classList.add('border-red-500');
+            }
+            
+            if (!password || password.length < 8) {
+                valid = false;
+                document.getElementById('password').classList.add('border-red-500');
+            }
+            
+            if (password !== confirmPassword) {
+                valid = false;
+                document.getElementById('confirm-password').classList.add('border-red-500');
+            }
+            
+            if (!terms) {
+                valid = false;
+                // Maybe add some styling to the checkbox
+            }
+            
+            if (valid) {
+                // Show success message or redirect
+                alert('Inscription réussie! Redirection vers l\'étape suivante...');
+                // In a real app, you would submit the form or use fetch/ajax
+            } else {
+                // Show error message
+                alert('Veuillez corriger les erreurs dans le formulaire.');
+            }
+        });
+        
+        // Clear error styling on input
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('border-red-500');
+            });
+        });
+    </script>
+{% endblock %}

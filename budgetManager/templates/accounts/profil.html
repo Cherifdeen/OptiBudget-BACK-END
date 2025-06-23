@@ -1,0 +1,480 @@
+{% extends 'accounts/base.html' %}
+{% block title %}
+  Profil
+{% endblock %}
+
+{% block content %}
+    <main class="p-4 md:p-6">
+    <!-- Breadcrumbs -->
+    <div class="flex items-center text-sm text-gray-500 mb-6">
+        <a href="#" class="hover:text-blue-600">Accueil</a>
+        <svg class="h-3 w-3 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+        <span class="text-gray-700">Mon Profil</span>
+    </div>
+    
+    <!-- Page Title -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Mon Profil</h2>
+        <div class="mt-3 md:mt-0">
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm flex items-center">
+                <i data-feather="save" class="h-4 w-4 mr-2"></i>
+                Sauvegarder les modifications
+            </button>
+        </div>
+    </div>
+    
+    <!-- Profile Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column - User Info -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <!-- Profile Picture -->
+                <div class="flex flex-col items-center mb-6">
+                    <div class="relative mb-4">
+                        <img src="/api/placeholder/128/128" alt="Avatar" class="w-32 h-32 rounded-full object-cover border-4 border-white shadow">
+                        <div class="absolute bottom-0 right-0">
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow">
+                                <i data-feather="camera" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-800">Thomas Dupont</h3>
+                    <p class="text-gray-500">Directeur Financier</p>
+                </div>
+                
+                <!-- Contact Info -->
+                <div class="border-t pt-4">
+                    <h4 class="text-sm font-medium text-gray-500 uppercase mb-4">Informations de contact</h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <div class="bg-gray-100 p-2 rounded-full mr-3">
+                                <i data-feather="mail" class="h-4 w-4 text-gray-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Email</p>
+                                <p class="text-sm text-gray-800">t.dupont@entrepriseabc.fr</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="bg-gray-100 p-2 rounded-full mr-3">
+                                <i data-feather="phone" class="h-4 w-4 text-gray-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Téléphone</p>
+                                <p class="text-sm text-gray-800">+33 6 12 34 56 78</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="bg-gray-100 p-2 rounded-full mr-3">
+                                <i data-feather="map-pin" class="h-4 w-4 text-gray-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Localisation</p>
+                                <p class="text-sm text-gray-800">Paris, France</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Social Links -->
+                <div class="border-t mt-4 pt-4">
+                    <h4 class="text-sm font-medium text-gray-500 uppercase mb-4">Réseaux sociaux</h4>
+                    <div class="flex space-x-2">
+                        <a href="#" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full">
+                            <i data-feather="linkedin" class="h-5 w-5 text-gray-600"></i>
+                        </a>
+                        <a href="#" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full">
+                            <i data-feather="twitter" class="h-5 w-5 text-gray-600"></i>
+                        </a>
+                        <a href="#" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full">
+                            <i data-feather="github" class="h-5 w-5 text-gray-600"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Company Info -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                <h4 class="text-sm font-medium text-gray-500 uppercase mb-4">Informations entreprise</h4>
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <div class="bg-gray-100 p-2 rounded-full mr-3">
+                            <i data-feather="briefcase" class="h-4 w-4 text-gray-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Entreprise</p>
+                            <p class="text-sm text-gray-800">Entreprise ABC</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="bg-gray-100 p-2 rounded-full mr-3">
+                            <i data-feather="users" class="h-4 w-4 text-gray-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Département</p>
+                            <p class="text-sm text-gray-800">Finance</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="bg-gray-100 p-2 rounded-full mr-3">
+                            <i data-feather="calendar" class="h-4 w-4 text-gray-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Date d'embauche</p>
+                            <p class="text-sm text-gray-800">15 mars 2022</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column - Profile Details -->
+        <div class="lg:col-span-2">
+            <!-- Tabs -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="border-b flex overflow-x-auto">
+                    <button class="px-6 py-3 border-b-2 border-blue-600 font-medium text-blue-600 whitespace-nowrap">
+                        Informations personnelles
+                    </button>
+                    <button class="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium whitespace-nowrap">
+                        Sécurité
+                    </button>
+                    <button class="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium whitespace-nowrap">
+                        Préférences
+                    </button>
+                    <button class="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium whitespace-nowrap">
+                        Activité
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Personal Information Form -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-800 mb-4">Informations personnelles</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- First Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+                        <input type="text" value="Thomas" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Last Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                        <input type="text" value="Dupont" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email professionnel</label>
+                        <input type="email" value="t.dupont@entrepriseabc.fr" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Phone -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                        <input type="tel" value="+33 6 12 34 56 78" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Position -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Poste</label>
+                        <input type="text" value="Directeur Financier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Department -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Département</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option selected>Finance</option>
+                            <option>Marketing</option>
+                            <option>Ressources Humaines</option>
+                            <option>Opérations</option>
+                            <option>Technologie</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Location -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+                        <input type="text" value="Paris, France" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Language -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Langue</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option selected>Français</option>
+                            <option>English</option>
+                            <option>Español</option>
+                            <option>Deutsch</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Bio -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Biographie</label>
+                    <textarea rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">Directeur Financier avec plus de 10 ans d'expérience dans la gestion financière. Spécialisé dans l'optimisation des processus financiers et la planification stratégique.</textarea>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-800">Activité récente</h3>
+                    <a href="#" class="text-sm text-blue-600 hover:underline">Voir tout</a>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Activity Item -->
+                    <div class="flex items-start">
+                        <div class="bg-blue-100 p-2 rounded-full">
+                            <i data-feather="file-text" class="h-4 w-4 text-blue-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-800">Rapport financier mis à jour</p>
+                            <p class="text-xs text-gray-500">Vous avez mis à jour le rapport financier du mois de mai.</p>
+                            <p class="text-xs text-gray-400 mt-1">Aujourd'hui à 09:45</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Item -->
+                    <div class="flex items-start">
+                        <div class="bg-green-100 p-2 rounded-full">
+                            <i data-feather="check-circle" class="h-4 w-4 text-green-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-800">Budget approuvé</p>
+                            <p class="text-xs text-gray-500">Vous avez approuvé le budget marketing pour le Q2.</p>
+                            <p class="text-xs text-gray-400 mt-1">Hier à 16:30</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Item -->
+                    <div class="flex items-start">
+                        <div class="bg-purple-100 p-2 rounded-full">
+                            <i data-feather="users" class="h-4 w-4 text-purple-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-800">Réunion d'équipe</p>
+                            <p class="text-xs text-gray-500">Vous avez participé à la réunion d'équipe finance.</p>
+                            <p class="text-xs text-gray-400 mt-1">17 mai 2025 à 14:00</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Item -->
+                    <div class="flex items-start">
+                        <div class="bg-yellow-100 p-2 rounded-full">
+                            <i data-feather="alert-circle" class="h-4 w-4 text-yellow-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-800">Alerte budgétaire</p>
+                            <p class="text-xs text-gray-500">Vous avez reçu une alerte concernant le budget RH.</p>
+                            <p class="text-xs text-gray-400 mt-1">16 mai 2025 à 10:15</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
+        
+        // Mobile Menu Toggle
+        document.getElementById('sidebar-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('overlay').classList.remove('hidden');
+            document.getElementById('overlay').classList.add('active');
+        });
+        
+        document.getElementById('sidebar-close').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('overlay').classList.add('hidden');
+        });
+        
+        document.getElementById('overlay').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('overlay').classList.add('hidden');
+        });
+        
+        // Dropdowns
+        document.getElementById('notif-toggle').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('notif-menu').classList.toggle('active');
+            document.getElementById('profile-menu').classList.remove('active');
+        });
+        
+        document.getElementById('profile-toggle').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('profile-menu').classList.toggle('active');
+            document.getElementById('notif-menu').classList.remove('active');
+        });
+        
+        document.addEventListener('click', function() {
+            document.getElementById('notif-menu').classList.remove('active');
+            document.getElementById('profile-menu').classList.remove('active');
+        });
+        
+        // Charts
+        // Expenses Chart
+        const expensesChart = new Chart(
+            document.getElementById('expenses-chart').getContext('2d'),
+            {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                    datasets: [
+                        {
+                            label: 'Dépenses',
+                            data: [30500, 32400, 28900, 35200, 45320, 0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#f87171',
+                            backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Revenus',
+                            data: [50200, 48300, 42100, 58400, 62145, 0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#34d399',
+                            backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value / 1000 + ' k€';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        
+        // Category Pie Chart
+        const categoryChart = new Chart(
+            document.getElementById('category-chart').getContext('2d'),
+            {
+                type: 'doughnut',
+                data: {
+                    labels: ['RH', 'Marketing', 'Développement', 'Locaux', 'Équipement'],
+                    datasets: [
+                        {
+                            data: [32540, 8500, 15200, 13500, 5245],
+                            backgroundColor: [
+                                'rgba(168, 85, 247, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                                'rgba(99, 102, 241, 0.8)'
+                            ]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                usePointStyle: true
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            }
+        );
+        
+    
+    
+    
+                // Script pour la fonctionnalité des sous-menus 
+                document.addEventListener('DOMContentLoaded', function() {
+                // Initialiser Feather Icons
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
+                }
+                
+                // Gestion des sous-menus
+                const submenus = document.querySelectorAll('.submenu-container');
+                
+                submenus.forEach(container => {
+                    const toggle = container.querySelector('a');
+                    const submenu = container.querySelector('.submenu');
+                    
+                    // Cacher tous les sous-menus au départ
+                    submenu.style.display = 'none';
+                    
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // Toggle du sous-menu
+                        if (submenu.style.display === 'none') {
+                            submenu.style.display = 'block';
+                            // Changer l'icône pour indiquer que le menu est ouvert
+                            const icon = toggle.querySelector('[data-feather="chevron-down"]');
+                            if (icon) {
+                                icon.setAttribute('data-feather', 'chevron-up');
+                                if (typeof feather !== 'undefined') {
+                                    feather.replace();
+                                }
+                            }
+                        } else {
+                            submenu.style.display = 'none';
+                            // Changer l'icône pour indiquer que le menu est fermé
+                            const icon = toggle.querySelector('[data-feather="chevron-up"]');
+                            if (icon) {
+                                icon.setAttribute('data-feather', 'chevron-down');
+                                if (typeof feather !== 'undefined') {
+                                    feather.replace();
+                                }
+                            }
+                        }
+                    });
+                });
+                
+
+                
+            });
+
+
+    </script>
+{% endblock %}

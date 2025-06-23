@@ -135,8 +135,11 @@ urlpatterns = [
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
     
+    # URLs des templates de réinitialisation de mot de passe (sans namespace)
+    path('', include('accounts.urls')),
+    
     path('api/', include([
-        path('accounts/', include('accounts.urls')),
+        path('accounts/', include('accounts.urls', namespace='api_accounts')),
         path('budgetManager/', include('budgetManager.urls')),
     ])),
 ]
